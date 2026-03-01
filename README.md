@@ -45,3 +45,9 @@ Then open the deployed URL and check:
 npm i
 npm run dev
 ```
+
+If you see a permissions error about Wrangler log files under `~/Library/Preferences/.wrangler`, run with a repo-local HOME:
+
+```bash
+HOME="$(pwd)/.home" XDG_CONFIG_HOME="$(pwd)/.config" XDG_CACHE_HOME="$(pwd)/.cache" npm run dev
+```

@@ -2,7 +2,7 @@
   "name": "apartment-helpdesk",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --local --port 8787 --inspector-port 0 --show-interactive-dev-session false",
     "deploy": "wrangler deploy",
     "d1:migrate": "wrangler d1 migrations apply helpdesk-db"
   },
@@ -10,4 +10,3 @@
     "wrangler": "^4.0.0"
   }
 }
-
