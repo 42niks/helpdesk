@@ -4,6 +4,9 @@ __pycache__/
 *.sqlite3
 .env
 .dev.vars
+.home/
+.config/
+.cache/
 .venv/
 venv/
 staticfiles/
