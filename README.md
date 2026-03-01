@@ -2,7 +2,25 @@
 
 Minimal, server-rendered ticketing system.
 
-## Deploy to Cloudflare (recommended)
+## Local dev (recommended)
+
+Fully local web server + SQLite database (no Cloudflare involved during local development):
+
+```bash
+cd /Users/nikhiltr/helpdesk
+npm i
+npm run migrate:local
+npm run dev
+```
+
+Open `http://127.0.0.1:8787/` and verify:
+
+- `/_health/` → `ok`
+- `/_db/` → `db ok (...)`
+
+SQLite file is `local.db` (inspect with `sqlite3 local.db`).
+
+## Deploy to Cloudflare (later)
 
 This repo is set up for Cloudflare Workers + D1 (SQLite). End-user functionality will remain server-rendered (no JS required).
 
@@ -39,15 +57,8 @@ Then open the deployed URL and check:
 - `/_health/` → `ok`
 - `/_db/` → `db ok (...)`
 
-## Local dev (optional)
+If you see a permissions error about Wrangler log files under `~/Library/Preferences/.wrangler` when using Wrangler locally, run with a repo-local HOME:
 
 ```bash
-npm i
-npm run dev
-```
-
-If you see a permissions error about Wrangler log files under `~/Library/Preferences/.wrangler`, run with a repo-local HOME:
-
-```bash
-HOME="$(pwd)/.home" XDG_CONFIG_HOME="$(pwd)/.config" XDG_CACHE_HOME="$(pwd)/.cache" npm run dev
+HOME="$(pwd)/.home" XDG_CONFIG_HOME="$(pwd)/.config" XDG_CACHE_HOME="$(pwd)/.cache" npm run dev:cf
 ```
