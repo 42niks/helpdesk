@@ -5,5 +5,5 @@ compatibility_date = "2026-03-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "helpdesk-db"
-database_id = "1d1e13b7-3ae7-47b4-8c58-1d7b83f8c531" # set this after creating the D1 database
+database_id = "692c3f02-85ff-49cf-9b7d-a77c7dd03292" # set this after creating the D1 database
 
