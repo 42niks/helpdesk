@@ -214,7 +214,10 @@ Staff visibility rules:
 - Platform operator: Person operating the system who performs provisioning directly in the database.
 - On payroll / currently linked: Staff has an active association with an apartment (and should be visible to that apartment for ratings/reviews).
 - Rating: Numeric score associated with a staff member based on resident reviews of completed tickets.
-- Review: Resident-written feedback (optionally including a rating) tied to exactly one completed ticket.
+- Review: Resident feedback tied to exactly one completed ticket, with `review_text` allowed only when a rating is present. Allowed combinations:
+- no rating and no review text
+- only rating and no review text
+- both rating and review text
 - Comment: Append-only message attached to a ticket (not a review).
 
 ### 5.1 Authentication
@@ -241,14 +244,15 @@ Rules:
 - Only resident reviews completed ticket
 - Only one review per ticket
 - Tickets are append-only and immutable (no editing or deleting ticket history).
-- Comments can be added by resident (ticket owner), staff (assigned), and admin (apartment admin).
+- Comments can be added by resident (shared flat account), staff (assigned), and admin (apartment admin).
 
 ---
 
 ### 5.3 Access Control
 
 Residents:
-- See only their tickets
+- Use one shared resident account per flat (one account per `(apartment, flat_number)` in MVP)
+- See tickets for that shared flat account only
 - Can view apartment-specific ratings and reviews for staff currently linked to their apartment (on payroll)
 
 Admins:
@@ -268,7 +272,7 @@ Staff:
 Since no public signup:
 
 - Auth required for ticket creation
-- Max 5 open tickets per resident
+- Max 5 open tickets per flat account
 - Minimum description length
 - Optional cooldown between ticket submissions
 - Ability to deactivate abusive users
@@ -288,3 +292,4 @@ No CAPTCHA required.
 - Real-time updates
 - Rich UI components
 - Admin super panel
+- Multiple resident accounts per flat (future roadmap)

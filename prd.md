@@ -71,7 +71,7 @@ The product should preserve the simplicity of the notebook model while removing 
 
 ### 4.1 Actor Definitions
 
-1. Resident: apartment-bound user who creates and tracks own tickets.
+1. Resident: apartment-bound account shared by a flat, used to create and track that flat's tickets.
 2. Apartment admin: single apartment-scoped managerial account used to assign and monitor tickets.
 3. Staff: operational worker assigned tickets; can be linked to multiple apartments.
 4. Platform operator: internal role managing provisioning directly in DB (no MVP UI).
@@ -81,9 +81,11 @@ The product should preserve the simplicity of the notebook model while removing 
 1. System roles are `resident`, `admin`, and `staff`.
 2. One login account maps to exactly one role.
 3. A real person who is both resident and admin must maintain two separate accounts.
-4. Exactly one admin account exists per apartment.
-5. Admin account is intentionally shared among apartment managers if there are multiple managers.
-6. Staff type is mandatory and restricted to `electrician` or `plumber`.
+4. Exactly one resident account exists per `(apartment, flat_number)` pair.
+5. Resident account is intentionally shared among flat occupants in MVP.
+6. Exactly one admin account exists per apartment.
+7. Admin account is intentionally shared among apartment managers if there are multiple managers.
+8. Staff type is mandatory and restricted to `electrician` or `plumber`.
 
 ### 4.3 Tenancy Rules
 
@@ -98,12 +100,12 @@ The product should preserve the simplicity of the notebook model while removing 
 | Capability | Resident | Admin | Staff |
 |---|---|---|---|
 | Create ticket | Yes | No | No |
-| View own ticket list | Yes | No | No |
+| View flat ticket list | Yes | No | No |
 | View apartment queue | No | Yes | No |
 | View self-assigned queue | No | No | Yes |
 | Assign/reassign staff | No | Yes | No |
-| Move ticket status forward | No | No | Yes (assigned only) |
-| Add comment | Yes (own ticket) | Yes (apartment ticket) | Yes (assigned ticket) |
+| Move ticket status forward | No | Yes (close-as-cancel flow only) | Yes (assigned only) |
+| Add comment | Yes (flat-account ticket) | Yes (apartment ticket) | Yes (assigned ticket) |
 | Submit review | Yes (own completed ticket, one time) | No | No |
 | View apartment review text | Yes (linked staff only) | Yes (linked staff only) | No |
 | View platform staff rating summary | No | Yes | No |
@@ -118,8 +120,8 @@ The product should preserve the simplicity of the notebook model while removing 
 4. Append-only ticket comments.
 5. One resident review per completed ticket.
 6. Apartment-level admin dashboard and staff performance views.
-7. Platform-wide staff rating summary for admins (without cross-apartment review text).
-8. Abuse controls (active-ticket cap, minimum description length, duplicate submission prevention).
+7. Platform-wide staff rating average/count for admins via toggle in staff summary (hidden by default, no cross-apartment review text).
+8. Abuse controls (active-ticket cap, minimum description length, no deduplication in MVP).
 9. Standard error handling screens and behaviors.
 
 ### 5.2 Assumptions
@@ -153,7 +155,8 @@ The product should preserve the simplicity of the notebook model while removing 
 3. Admin opens ticket detail and assigns eligible staff.
 4. Admin monitors comments and status movement.
 5. Admin reassigns if needed during `Assigned` or `In Progress`.
-6. Admin reviews apartment staff feedback and platform rating summary.
+6. Admin can close duplicate/invalid tickets by adding cancellation comment and marking status as `Completed`.
+7. Admin reviews apartment staff feedback and (optionally toggled) platform-wide rating averages.
 
 ### 6.3 Staff Journey
 
@@ -168,8 +171,11 @@ The product should preserve the simplicity of the notebook model while removing 
 1. Ticket starts as `Open` on resident creation.
 2. Admin assigns staff, moving ticket to `Assigned`.
 3. Assigned staff starts work, moving to `In Progress`.
-4. Assigned staff completes work, moving to `Completed`.
-5. Resident optionally leaves one review (rating and/or text).
+4. Ticket reaches `Completed` either by assigned staff after work, or by admin for duplicate/invalid closure with a cancellation comment.
+5. Resident optionally leaves one review with these allowed combinations only:
+   - no rating and no review text
+   - only rating and no review text
+   - both rating and review text
 
 ## 7. Detailed Requirements (Screen-by-Screen and Behavior-by-Behavior)
 
@@ -189,7 +195,7 @@ The product should preserve the simplicity of the notebook model while removing 
 | A-2 | Admin Queue Panel (inside Home) | `N/A (rendered in /admin)` | Admin |
 | A-3 | Ticket Detail (Admin View) | `/tickets/:id` | Admin |
 | A-4 | Admin Apartment Staff View | `/admin/staff` | Admin |
-| A-5 | Admin Platform Staff Summary | `/admin/staff/platform-summary` | Admin |
+| A-5 | Platform-Wide Rating Toggle (inside Staff View) | `N/A (rendered in /admin/staff)` | Admin |
 | A-6 | Admin Account | `/admin/account` | Admin |
 | S-1 | Staff Home (Assigned Queue) | `/staff` | Staff |
 | S-2 | Ticket Detail (Staff View) | `/tickets/:id` | Staff |
@@ -218,12 +224,12 @@ The product should preserve the simplicity of the notebook model while removing 
 | R-4 | Same as `R-3` because this review block is inline inside `/tickets/:id` |
 | R-5 | `<- Resident Home (All Tickets)` (`/resident`), `Resident Account` (`/resident/account`) |
 | R-6 | `<- Resident Home (All Tickets)` (`/resident`), `Resident Staff Ratings` (`/resident/staff-ratings`) |
-| A-1 | `Apartment Staff Performance` (`/admin/staff`), `Platform Staff Rating Summary` (`/admin/staff/platform-summary`), `Admin Account` (`/admin/account`) |
+| A-1 | `Apartment Staff Performance` (`/admin/staff`), `Admin Account` (`/admin/account`) |
 | A-2 | Same as `A-1` because queue panel is embedded in `/admin` |
-| A-3 | `<- Admin Home (All Tickets)` (`/admin`), `Apartment Staff Performance` (`/admin/staff`), `Platform Staff Rating Summary` (`/admin/staff/platform-summary`) |
-| A-4 | `<- Admin Home (All Tickets)` (`/admin`), `Platform Staff Rating Summary` (`/admin/staff/platform-summary`), `Admin Account` (`/admin/account`) |
-| A-5 | `<- Admin Home (All Tickets)` (`/admin`), `Apartment Staff Performance` (`/admin/staff`), `Admin Account` (`/admin/account`) |
-| A-6 | `<- Admin Home (All Tickets)` (`/admin`), `Apartment Staff Performance` (`/admin/staff`), `Platform Staff Rating Summary` (`/admin/staff/platform-summary`) |
+| A-3 | `<- Admin Home (All Tickets)` (`/admin`), `Apartment Staff Performance` (`/admin/staff`) |
+| A-4 | `<- Admin Home (All Tickets)` (`/admin`), `Admin Account` (`/admin/account`) |
+| A-5 | Same as `A-4` because this toggle is embedded inside `/admin/staff` |
+| A-6 | `<- Admin Home (All Tickets)` (`/admin`), `Apartment Staff Performance` (`/admin/staff`) |
 | S-1 | `Staff Account` (`/staff/account`) |
 | S-2 | `<- Staff Home (Assigned Tickets)` (`/staff`), `Staff Account` (`/staff/account`) |
 | S-3 | `<- Staff Home (Assigned Tickets)` (`/staff`) |
@@ -286,10 +292,10 @@ Route intent:
 
 Access rules:
 
-1. Resident can open only own ticket, otherwise `404`.
+1. Resident can open only tickets for the logged-in resident flat account, otherwise `404`.
 2. Admin can open ticket only if ticket belongs to admin's apartment, otherwise `404`.
 3. Staff can open ticket only if currently assigned to that ticket, otherwise `404`.
-4. Other residents from same apartment still get `404` unless they are ticket owner.
+4. Other residents are expected to use the shared flat resident account in MVP.
 5. Unauthenticated users are redirected to Apartment Helpdesk Home + Login page (`/`).
 6. Nonexistent ticket id returns `404`.
 
@@ -309,7 +315,7 @@ Resident sees:
 4. Mobile number.
 5. Ticket summary cards by status (`Open`, `Assigned`, `In Progress`, `Completed`).
 6. Active ticket counter `X/5`.
-7. Own ticket list (newest first), each row showing:
+7. Flat ticket list (newest first), each row showing:
    - Ticket number
    - Issue type (`electrical` or `plumbing`)
    - Title
@@ -320,13 +326,13 @@ Resident sees:
 
 Resident can do:
 
-1. Open own ticket detail (`R-3`).
+1. Open flat ticket detail (`R-3`).
 2. Go to create ticket (`R-2`) if active count < 5.
-3. Filter own tickets by status.
+3. Filter flat tickets by status.
 
 Resident cannot do:
 
-1. View other residents' tickets.
+1. View tickets outside the logged-in flat account.
 2. Assign/reassign staff.
 3. Change ticket status.
 
@@ -353,9 +359,9 @@ Resident can do:
 Validation rules:
 
 1. Title required, length 8-120 characters.
-2. Description required, minimum 20 characters.
-3. Submission blocked when resident already has 5 active tickets.
-4. Duplicate form resubmit must not create duplicate ticket.
+2. Description required, minimum 10 characters.
+3. Submission blocked when the flat account already has 5 active tickets.
+4. No duplicate-submission prevention in MVP: repeated submit can create multiple tickets.
 
 Success result:
 
@@ -366,7 +372,7 @@ Success result:
 
 Visible to:
 
-1. Ticket owner resident only.
+1. Resident flat account only.
 
 Resident sees:
 
@@ -398,8 +404,8 @@ Resident cannot do:
 
 Visible to:
 
-1. Ticket owner resident can see review input controls only when ticket is `Completed` and review does not already exist.
-2. Any authorized viewer of `/tickets/:id` (owner resident, same-apartment admin, currently assigned staff) can see submitted review output.
+1. Resident flat account can see review input controls only when ticket is `Completed` and review does not already exist.
+2. Any authorized viewer of `/tickets/:id` (resident flat account, same-apartment admin, currently assigned staff) can see submitted review output.
 
 Resident input controls:
 
@@ -414,10 +420,15 @@ Resident can do:
 Validation rules:
 
 1. Reject if ticket not completed.
-2. Reject if resident is not ticket owner.
+2. Reject if resident session does not match the ticket's resident flat account.
 3. Reject if review already exists.
-4. On successful submission, review appears at top of ticket detail just below title.
-5. If review is absent, page must not show an empty review placeholder.
+4. Reject if review text is submitted without a rating.
+5. Allowed combinations:
+   - no rating and no review text
+   - only rating and no review text
+   - both rating and review text
+6. On successful submission, review appears at top of ticket detail just below title.
+7. If review is absent, page must not show an empty review placeholder.
 
 #### 7.3.5 R-5 Resident Staff Ratings (`/resident/staff-ratings`)
 
@@ -555,12 +566,14 @@ Admin can do:
 1. Assign staff when status is `Open`.
 2. Reassign staff when status is `Assigned` or `In Progress`.
 3. Add admin comment in non-completed states.
+4. Close duplicate/invalid tickets by:
+   - adding an admin comment with cancellation reason (for example, `Cancelled: duplicate ticket`)
+   - then marking status as `Completed`
 
 Admin cannot do:
 
-1. Change ticket status directly.
-2. Edit ticket title/description.
-3. Submit resident review.
+1. Edit ticket title/description.
+2. Submit resident review.
 
 #### 7.4.4 A-4 Admin Apartment Staff View (`/admin/staff`)
 
@@ -571,14 +584,15 @@ Visible to:
 Admin sees:
 
 1. Staff currently linked to admin apartment only.
-2. For each staff:
+2. Tabular staff summary (one row per staff).
+3. Default visible columns:
    - Full name
    - Staff type (`electrician` or `plumber`)
    - Mobile number
    - Apartment-specific average rating
    - Apartment-specific rating count
    - Completed ticket count in this apartment
-3. Apartment-scoped review feed per staff:
+4. Apartment-scoped review feed per staff:
    - Ticket number
    - Date
    - Rating (if provided)
@@ -587,13 +601,14 @@ Admin sees:
 Admin can do:
 
 1. View staff performance data.
+2. Toggle platform-wide rating columns on/off in the table (off by default).
 
 Admin cannot do:
 
 1. Modify staff type/linkage in MVP UI.
 2. View review text of staff not currently linked to apartment.
 
-#### 7.4.5 A-5 Admin Platform Staff Summary (`/admin/staff/platform-summary`)
+#### 7.4.5 A-5 Platform-Wide Rating Toggle (inline in `/admin/staff`)
 
 Visible to:
 
@@ -601,19 +616,19 @@ Visible to:
 
 Admin sees:
 
-1. All staff across platform (linked or unlinked).
-2. For each staff:
-   - Full name
-   - Staff type
-   - Overall average rating
-   - Overall rating count
-3. No review text.
-4. No resident-identifying data.
-5. No apartment-specific textual feedback.
+1. A toggle control on the staff summary table in `A-4`:
+   - Label: `Show Platform-Wide Ratings`
+   - Default state: off (platform-wide columns hidden)
+2. When toggled on, each visible staff row additionally shows:
+   - Platform-wide average rating
+   - Platform-wide rating count
+3. Platform-wide values must be shown alongside apartment-specific values, not replacing them.
+4. No cross-apartment review text is shown in this mode.
+5. No resident-identifying data is shown in this mode.
 
 Admin can do:
 
-1. View high-level rating summary for staffing decisions.
+1. Compare apartment-specific vs platform-wide rating averages for currently linked staff.
 
 Admin cannot do:
 
@@ -788,13 +803,13 @@ Shows:
 |---|---|---|---|
 | Login/logout | Yes | Yes | Yes |
 | Create ticket | Yes (own apartment) | No | No |
-| View own ticket list | Yes | No | No |
+| View flat ticket list | Yes | No | No |
 | View apartment queue | No | Yes (own apartment only) | No |
 | View self assigned queue | No | No | Yes (self only) |
 | Assign/reassign staff | No | Yes (own apartment only) | No |
-| Change ticket status | No | No | Yes (if currently assigned) |
-| Add comment | Yes (own ticket) | Yes (apartment ticket) | Yes (assigned ticket) |
-| Submit review | Yes (own completed ticket, one only) | No | No |
+| Change ticket status | No | Yes (close duplicate/invalid as `Completed` with required cancellation comment) | Yes (if currently assigned) |
+| Add comment | Yes (flat-account ticket) | Yes (apartment ticket) | Yes (assigned ticket) |
+| Submit review | Yes (flat-account completed ticket, one only) | No | No |
 | View apartment staff reviews | Yes (own apartment, linked staff only) | Yes (own apartment, linked staff only) | No |
 | View platform staff rating summary | No | Yes | No |
 
@@ -812,25 +827,29 @@ Allowed transitions:
 1. `Open -> Assigned` by admin.
 2. `Assigned -> In Progress` by assigned staff.
 3. `In Progress -> Completed` by assigned staff.
+4. `Open -> Completed` by admin only for duplicate/invalid closure, with mandatory cancellation comment.
+5. `Assigned -> Completed` by admin only for duplicate/invalid closure, with mandatory cancellation comment.
+6. `In Progress -> Completed` by admin only for duplicate/invalid closure, with mandatory cancellation comment.
 
 Forbidden transitions:
 
 1. Backward transitions.
-2. Skip transitions (for example, `Assigned -> Completed`).
+2. Skip transitions by non-admin actors.
 3. Any transition by unauthorized actor.
 
 ### 7.9 Validation and Edge Cases
 
-1. Resident maximum active tickets is 5 (`Open`, `Assigned`, `In Progress`).
+1. Flat-account maximum active tickets is 5 (`Open`, `Assigned`, `In Progress`).
 2. Title length must be 8-120 characters.
-3. Description minimum length is 20 characters.
+3. Description minimum length is 10 characters.
 4. Stale form submission must fail safely with refresh guidance.
-5. Duplicate submissions must not create duplicate tickets or duplicate reviews.
-6. Deactivated users cannot log in or mutate data.
-7. Historical records remain visible for audit after deactivation.
-8. Unauthorized direct URL access returns `403`.
-9. Missing resources return `404`.
-10. Validation errors preserve user input where safe.
+5. Ticket duplicate submission is allowed in MVP; repeated submit can create multiple tickets.
+6. Duplicate review submission must not create multiple reviews for the same ticket.
+7. Deactivated users cannot log in or mutate data.
+8. Historical records remain visible for audit after deactivation.
+9. Unauthorized direct URL access returns `403`.
+10. Missing resources return `404`.
+11. Validation errors preserve user input where safe.
 
 ### 7.10 Staff Visibility Rules (Resolved)
 
@@ -838,7 +857,7 @@ Forbidden transitions:
 2. Admins can view ratings/review text only for staff currently linked to admin's apartment.
 3. If staff is unlinked from apartment, that apartment's review views no longer show that staff's review text.
 4. Historical ticket pages continue to show factual assignment/status history.
-5. Admin platform summary can show overall average rating and rating count for all staff.
+5. Admin staff summary toggle can show platform-wide average rating and rating count for visible staff.
 6. Platform summary never exposes cross-apartment review text.
 7. Platform summary never exposes resident-identifying details.
 
@@ -878,6 +897,11 @@ Forbidden transitions:
 | `apartment_id` | Yes | Exactly one apartment |
 | `flat_number` | Yes | Unit identifier |
 | `is_active` | Yes | Login/action gating |
+
+Additional resident constraints:
+
+1. Exactly one resident account exists for each `(apartment_id, flat_number)` pair.
+2. The resident account is intentionally shared by flat occupants in MVP.
 
 ### 8.3 Admin Fields
 
@@ -961,10 +985,10 @@ Comments are immutable after creation.
 |---|---|---|
 | `review_id` | Yes | Unique identifier |
 | `ticket_id` | Yes | One review per ticket |
-| `resident_id` | Yes | Must equal ticket owner |
+| `resident_id` | Yes | Must match the ticket's resident flat account |
 | `staff_id` | Yes | Staff on completed ticket |
 | `rating` | No | Integer 1-5 |
-| `review_text` | No | Optional feedback |
+| `review_text` | No | Optional feedback, but only allowed when rating is present |
 | `created_at` | Yes | Audit timestamp |
 
 ## 9. Metrics and Success Criteria
@@ -999,8 +1023,9 @@ Comments are immutable after creation.
 ### 10.2 Open Questions (Non-Blocking for MVP)
 
 1. Should admin comment capability remain blocked after completion, or allow post-completion notes?
+   Ans: Blocked.
 2. Should ticket cooldown between resident submissions be introduced in MVP or deferred?
-3. Should staff performance summaries eventually separate apartment-normalized ratings vs raw averages?
+   Ans: Deferred.
 
 ## 11. Release Acceptance Criteria
 
@@ -1035,8 +1060,9 @@ Release readiness requires all checks below:
 1. Notifications for assignment/status updates.
 2. Attachments for richer issue reporting.
 3. Escalation rules and SLA tracking.
-4. More granular admin accountability beyond shared account model.
-5. Broader issue taxonomy beyond plumbing/electrical.
+4. Support multiple resident accounts per flat with shared-flat ticket visibility rules.
+5. More granular admin accountability beyond shared account model.
+6. Broader issue taxonomy beyond plumbing/electrical.
 
 ## 13. Current Implementation Baseline (As of 2026-03-02)
 
