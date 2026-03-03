@@ -30,9 +30,16 @@ Open `http://127.0.0.1:8787/`.
 Quick checks:
 
 - `http://127.0.0.1:8787/_health/` -> `ok`
-- `http://127.0.0.1:8787/_db/` -> `db ok (schema_version=1)`
+- `http://127.0.0.1:8787/_db/` -> `db ok (schema_version=2)`
 
-SQLite DB file is `local.db` (inspect with `sqlite3 local.db`).
+Default local app DB is `local-dev-db` (inspect with `sqlite3 local-dev-db`).
+
+Separate coding/test DB is `local-test-db`.
+
+```bash
+npm run migrate:test-db
+npm run dev:test-db
+```
 
 ## Cloudflare scaffold (ready when needed)
 

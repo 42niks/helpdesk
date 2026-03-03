@@ -1,15 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { applyMigrations } from "../src/app/migrations.mjs";
 
-const sqlitePath = process.env.SQLITE_PATH || "local.db";
-const migrationsPath = path.resolve(process.cwd(), "migrations", "0001_init.sql");
+const sqlitePath = process.env.SQLITE_PATH || "local-dev-db";
+const migrationsDir = path.resolve(process.cwd(), "migrations");
 
-const sql = fs.readFileSync(migrationsPath, "utf8");
-const db = new DatabaseSync(sqlitePath);
+const applied = applyMigrations({
+  sqlitePath,
+  migrationsDir,
+});
 
-db.exec(sql);
-db.close();
-
-console.log(`ok: applied migrations to ${sqlitePath}`);
-
+console.log(`ok: applied ${applied.length} migration(s) to ${sqlitePath}`);

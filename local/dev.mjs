@@ -1,93 +1,78 @@
-import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { createApp } from "../src/app/index.mjs";
+import { createNodeDbAdapter } from "../src/app/db/node-adapter.mjs";
+import { applyMigrations } from "../src/app/migrations.mjs";
 
 const port = Number.parseInt(process.env.PORT || "8787", 10);
 const host = process.env.HOST || "127.0.0.1";
-const sqlitePath = process.env.SQLITE_PATH || "local.db";
-const migrationsPath = path.resolve(process.cwd(), "migrations", "0001_init.sql");
+const sqlitePath = process.env.SQLITE_PATH || "local-dev-db";
+const migrationsDir = path.resolve(process.cwd(), "migrations");
+applyMigrations({ sqlitePath, migrationsDir });
 
-function respond(res, status, headers, body) {
-  res.writeHead(status, headers);
-  res.end(body);
-}
+const db = createNodeDbAdapter(sqlitePath);
+const app = createApp({
+  db,
+  environment: "local",
+});
 
-function respondText(res, status, body) {
-  respond(
-    res,
-    status,
-    { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
-    body,
-  );
-}
-
-function respondHtml(res, status, body) {
-  const doc =
-    '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">' +
-    body;
-  respond(
-    res,
-    status,
-    { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" },
-    doc,
-  );
-}
-
-// Ensure schema exists.
-{
-  const migrationSql = fs.readFileSync(migrationsPath, "utf8");
-  const db = new DatabaseSync(sqlitePath);
-  db.exec(migrationSql);
-  db.close();
-}
-
-const server = http.createServer((req, res) => {
-  const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-
-  if (url.pathname === "/_health/") {
-    return respondText(res, 200, "ok");
+async function readRequestBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(chunk);
   }
+  return Buffer.concat(chunks);
+}
 
-  if (url.pathname === "/_db/") {
-    try {
-      const db = new DatabaseSync(sqlitePath);
-      const row = db
-        .prepare("select value from meta where key = 'schema_version'")
-        .get();
-      db.close();
-      return respondText(res, 200, `db ok (schema_version=${row?.value ?? "unknown"})`);
-    } catch (error) {
-      return respondText(res, 500, `db error: ${String(error)}`);
+function responseHeaders(response) {
+  const headers = {};
+  for (const [name, value] of response.headers.entries()) {
+    if (name.toLowerCase() === "set-cookie") {
+      continue;
+    }
+    headers[name] = value;
+  }
+  if (typeof response.headers.getSetCookie === "function") {
+    const setCookies = response.headers.getSetCookie();
+    if (setCookies.length > 0) {
+      headers["set-cookie"] = setCookies;
+    }
+  } else {
+    const setCookie = response.headers.get("set-cookie");
+    if (setCookie) {
+      headers["set-cookie"] = setCookie;
     }
   }
+  return headers;
+}
 
-  if (url.pathname === "/") {
-    return respondHtml(
-      res,
-      200,
-      `
-        <title>Helpdesk (Local)</title>
-        <main style="max-width:480px;margin:24px auto;padding:0 16px;font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif;line-height:1.4">
-          <h1 style="margin:0 0 12px">Helpdesk (Local)</h1>
-          <p style="margin:0 0 8px">Server: Node.js (fully local)</p>
-          <p style="margin:0 0 16px">DB: SQLite file <code>${sqlitePath}</code></p>
-          <ul style="padding-left:18px">
-            <li><a href="/_health/">Health</a></li>
-            <li><a href="/_db/">DB check</a></li>
-          </ul>
-          <p style="margin:16px 0 0;color:#555">
-            You can inspect the DB with: <code>sqlite3 ${sqlitePath}</code>
-          </p>
-        </main>
-      `,
-    );
+const server = http.createServer(async (req, res) => {
+  try {
+    const requestUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+    const body =
+      req.method === "GET" || req.method === "HEAD" ? undefined : await readRequestBody(req);
+    const request = new Request(requestUrl, {
+      method: req.method,
+      headers: req.headers,
+      body,
+    });
+    const response = await app.fetch(request);
+    res.writeHead(response.status, responseHeaders(response));
+    if (!response.body) {
+      res.end();
+      return;
+    }
+    const payload = Buffer.from(await response.arrayBuffer());
+    res.end(payload);
+  } catch (error) {
+    res.writeHead(500, {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+    });
+    res.end(`server error: ${String(error)}`);
   }
-
-  return respondText(res, 404, "Not found");
 });
 
 server.listen(port, host, () => {
   console.log(`ok: http://${host}:${port}/ (sqlite: ${sqlitePath})`);
 });
-

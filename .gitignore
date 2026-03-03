@@ -14,3 +14,8 @@ staticfiles/
 node_modules/
 dist/
 .wrangler/
+playwright-report/
+test-results/
+local-test-db
+local-dev-db
+local/seed-milestone1.mjs
