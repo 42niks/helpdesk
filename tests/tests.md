@@ -11,7 +11,7 @@ Checks that hashing the same token gives the same result every time, and that th
 ## Integration tests (backend + database)
 
 1. **Migration baseline test**
-Checks that Milestone 1 migrations create the required auth/session tables and set `schema_version=2`.
+Checks that required auth/session baseline tables exist and `schema_version` remains compatible with Milestone 1 expectations.
 
 2. **Login page render test**
 Checks that `GET /` shows the login form fields and that `/?reason=expired` shows a session-expired message.
@@ -49,3 +49,83 @@ In a real browser, checks resident can:
 
 2. **Admin and staff login routing flow**
 In a real browser, checks admin login lands on admin home, and staff login lands on staff home.
+
+# Milestone 2
+
+## Unit tests
+
+1. **Ticket create validation test**
+Checks valid resident ticket input passes and invalid issue/title/description combinations fail with expected messages.
+
+2. **Ticket comment validation test**
+Checks comment text is trimmed and validated within 1-2000 character limits.
+
+## Integration tests (backend + database)
+
+1. **Milestone 2 migration test**
+Checks ticket-domain resident tables exist (`tickets`, `ticket_events`, `ticket_comments`) and `schema_version=3`.
+
+2. **Resident home list rendering test**
+Checks resident home shows active count and resident-owned tickets with detail links.
+
+3. **Resident ticket create success test**
+Checks `POST /tickets` creates an `open` ticket, assigns deterministic ticket number format, and records `created` event.
+
+4. **Resident ticket create validation test**
+Checks invalid create input returns `422` with field errors and preserved values.
+
+5. **Resident active cap test**
+Checks resident ticket create is blocked with `409` when flat has 5 active tickets.
+
+6. **Resident ticket detail authorization test**
+Checks non-owner resident receives `404` on `/tickets/:id`.
+
+7. **Resident comment success test**
+Checks owner can post comment via `/tickets/:id/comments`, gets `303`, and comment appears in detail timeline.
+
+8. **Resident comment validation test**
+Checks invalid comment input returns `422` with inline error.
+
+9. **Resident completed-ticket comment block test**
+Checks comment on completed ticket returns `409`.
+
+10. **Resident mutation CSRF test**
+Checks missing CSRF on `POST /tickets` and `POST /tickets/:id/comments` returns `403`.
+
+## E2E tests (frontend/browser)
+
+1. **Resident create and comment flow**
+In a real browser, checks resident can login, create a ticket from `/tickets/new`, land on `/tickets/:id`, submit comment, and see ticket on resident home list.
+
+# Milestone 3-5
+
+## Integration tests (backend + database)
+
+1. **Milestone 3+ migration test**
+Checks `staff_apartment_links` and `ticket_reviews` tables exist and schema version is updated.
+
+2. **Admin assignment success test**
+Checks admin can assign an eligible linked staff member and assignment event is recorded.
+
+3. **Admin assignment validation tests**
+Checks assignment is rejected for staff type mismatch and unlinked staff.
+
+4. **Shared ticket detail visibility test**
+Checks `/tickets/:id` visibility for resident owner, admin apartment, and currently assigned staff; non-visible actors get `404`.
+
+5. **Staff status transition tests**
+Checks valid transitions (`assigned -> in_progress -> completed`) and rejects invalid transitions with `409`.
+
+6. **Admin completion with cancellation reason test**
+Checks admin completion requires reason, sets admin-cancel flag, and writes event + comment trail.
+
+7. **Resident review flow tests**
+Checks resident can submit review once on completed ticket, duplicate review returns `409`, and review text without rating returns `422`.
+
+8. **Ratings scope test**
+Checks resident/admin apartment ratings are apartment-scoped (including review text) and admin platform view shows only summary metrics.
+
+## E2E tests (frontend/browser)
+
+1. **Full cross-role workflow**
+In a real browser, checks resident ticket creation, admin assignment, staff completion, resident review submission, and resident staff-ratings visibility.

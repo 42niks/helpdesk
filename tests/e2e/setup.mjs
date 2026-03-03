@@ -35,12 +35,16 @@ const insertAccount = db.prepare(
   "insert into accounts (username, password_hash, role, is_active, created_at, updated_at) values (?, ?, ?, 1, ?, ?)",
 );
 insertAccount.run("resident_flat101", passwordHash, "resident", createdAt, createdAt);
+insertAccount.run("resident_flat102", passwordHash, "resident", createdAt, createdAt);
 insertAccount.run("admin_pm", passwordHash, "admin", createdAt, createdAt);
 insertAccount.run("staff_electric_1", passwordHash, "staff", createdAt, createdAt);
+insertAccount.run("staff_plumber_1", passwordHash, "staff", createdAt, createdAt);
 
 const residentAccountId = db.prepare("select id from accounts where username = ?").get("resident_flat101").id;
+const residentFlat102AccountId = db.prepare("select id from accounts where username = ?").get("resident_flat102").id;
 const adminAccountId = db.prepare("select id from accounts where username = ?").get("admin_pm").id;
 const staffAccountId = db.prepare("select id from accounts where username = ?").get("staff_electric_1").id;
+const staffPlumberAccountId = db.prepare("select id from accounts where username = ?").get("staff_plumber_1").id;
 
 db.prepare(
   [
@@ -48,6 +52,12 @@ db.prepare(
     "values (?, ?, ?, ?, ?, ?, ?)",
   ].join(" "),
 ).run(residentAccountId, apartmentId, "Flat 101", "101", "9999999999", createdAt, createdAt);
+db.prepare(
+  [
+    "insert into residents (account_id, apartment_id, full_name, flat_number, mobile_number, created_at, updated_at)",
+    "values (?, ?, ?, ?, ?, ?, ?)",
+  ].join(" "),
+).run(residentFlat102AccountId, apartmentId, "Flat 102", "102", "9999999998", createdAt, createdAt);
 
 db.prepare(
   [
@@ -59,6 +69,24 @@ db.prepare(
 db.prepare(
   "insert into staff (account_id, full_name, mobile_number, staff_type, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
 ).run(staffAccountId, "Electric Staff", "7777777777", "electrician", createdAt, createdAt);
+
+db.prepare(
+  "insert into staff (account_id, full_name, mobile_number, staff_type, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
+).run(staffPlumberAccountId, "Plumber Staff", "7777777776", "plumber", createdAt, createdAt);
+
+db.prepare(
+  [
+    "insert into staff_apartment_links (staff_account_id, apartment_id, is_active, linked_at, unlinked_at)",
+    "values (?, ?, 1, ?, null)",
+  ].join(" "),
+).run(staffAccountId, apartmentId, createdAt);
+
+db.prepare(
+  [
+    "insert into staff_apartment_links (staff_account_id, apartment_id, is_active, linked_at, unlinked_at)",
+    "values (?, ?, 1, ?, null)",
+  ].join(" "),
+).run(staffPlumberAccountId, apartmentId, createdAt);
 
 db.close();
 

@@ -1,8 +1,6 @@
 # Apartment Helpdesk
 
-Server-rendered apartment ticketing system (MVP in progress).
-
-Current status is tracked in `status.md`.
+Server-rendered apartment ticketing system (MVP implemented).
 
 ## About the project
 
@@ -30,7 +28,7 @@ Open `http://127.0.0.1:8787/`.
 Quick checks:
 
 - `http://127.0.0.1:8787/_health/` -> `ok`
-- `http://127.0.0.1:8787/_db/` -> `db ok (schema_version=2)`
+- `http://127.0.0.1:8787/_db/` -> `db ok (schema_version=4)`
 
 Default local app DB is `local-dev-db` (inspect with `sqlite3 local-dev-db`).
 
