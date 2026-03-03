@@ -4,10 +4,10 @@ import {
   getTicketReview,
   hasActiveStaffApartmentLink,
   loadAssigneeForAssignment,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   validateReviewInput,
-} from "./tickets-validation.mjs";
+} from "./validation.mjs";
 import {
   actorLogShape,
   issueTypeToStaffType,
@@ -17,23 +17,23 @@ import {
   parsePositiveInt,
   redirect,
   requestId,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 import {
   csrfForbiddenForRole,
   forbiddenForRole,
   requireSession,
-} from "./auth-session.mjs";
+} from "../auth/session.mjs";
 import {
   requireAdminSession,
   requireResidentSession,
-} from "./role-session-guards.mjs";
+} from "../auth/guards.mjs";
 import {
   getTicketContextForSession,
   renderTicketDetailForContext,
-} from "./ticket-context.mjs";
+} from "./context.mjs";
 import {
   renderNotFound,
-} from "./error-handlers.mjs";
+} from "../errors/handlers.mjs";
 
 export async function handleAdminAssignTicket({ db, request, environment, ticketId, requestIdValue = requestId() }) {
   const adminAuth = await requireAdminSession({ db, request, environment });

@@ -1,10 +1,10 @@
 import {
   listApartmentLinkedStaffRatings,
   listApartmentReviewTexts,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   residentPlaceholderPage,
-} from "./views.mjs";
+} from "../core/views.mjs";
 import {
   doc,
   formatAverageRating,
@@ -13,10 +13,10 @@ import {
   navWithLogout,
   ratingLabel,
   staffTypeLabel,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 import {
   requireResidentSession,
-} from "./role-session-guards.mjs";
+} from "../auth/guards.mjs";
 
 export async function handleResidentAccountPage({ db, request, environment }) {
   const residentAuth = await requireResidentSession({ db, request, environment });

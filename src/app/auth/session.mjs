@@ -6,7 +6,7 @@ import {
 } from "./security.mjs";
 import {
   findAccountForLogin,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   SESSION_COOKIE_NAME,
   SESSION_TTL_HOURS,
@@ -23,7 +23,7 @@ import {
   roleHome,
   sessionCookie,
   loginPage,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 
 function isSessionExpired(expiresAt, nowValue) {
   const expiresAtTime = Date.parse(expiresAt);

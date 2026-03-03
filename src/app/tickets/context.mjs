@@ -9,14 +9,14 @@ import {
   listAssignableStaff,
   listTicketComments,
   listTicketEvents,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   validateCommentInput,
-} from "./tickets-validation.mjs";
+} from "./validation.mjs";
 import {
   operatorTicketDetailPage,
   residentTicketDetailPage,
-} from "./views.mjs";
+} from "../core/views.mjs";
 import {
   actorLogShape,
   logMutationRecord,
@@ -24,15 +24,15 @@ import {
   parseForm,
   redirect,
   requestId,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 import {
   csrfForbiddenForRole,
   forbiddenForRole,
   requireSession,
-} from "./auth-session.mjs";
+} from "../auth/session.mjs";
 import {
   renderNotFound,
-} from "./error-handlers.mjs";
+} from "../errors/handlers.mjs";
 
 export async function getTicketContextForSession({ db, session, ticketId }) {
   if (session.role === "resident") {

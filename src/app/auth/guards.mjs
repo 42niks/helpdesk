@@ -2,11 +2,11 @@ import {
   getAdminProfile,
   getResidentProfile,
   getStaffProfile,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   forbiddenForRole,
   requireSession,
-} from "./auth-session.mjs";
+} from "./session.mjs";
 
 export async function requireResidentSession({ db, request, environment }) {
   const authResult = await requireSession({ db, request, environment });

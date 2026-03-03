@@ -1,38 +1,38 @@
 import {
   handleLogin,
   actorForRequestLog,
-} from "./auth-session.mjs";
+} from "./auth/session.mjs";
 import {
   handleSharedTicketDetail,
   handleTicketComment,
-} from "./ticket-context.mjs";
+} from "./tickets/context.mjs";
 import {
   handleAdminAssignTicket,
   handleResidentReviewSubmit,
   handleTicketStatusUpdate,
-} from "./ticket-management-handlers.mjs";
+} from "./tickets/management-handlers.mjs";
 import {
   handleRoleHome,
-} from "./role-home-handlers.mjs";
+} from "./pages/role-home.mjs";
 import {
   handleResidentCreateTicket,
   handleResidentCreateTicketPage,
-} from "./resident-ticket-handlers.mjs";
+} from "./tickets/resident-handlers.mjs";
 import {
   handleResidentAccountPage,
   handleResidentStaffRatingsPage,
-} from "./resident-page-handlers.mjs";
+} from "./pages/resident-pages.mjs";
 import {
   handleAdminAccountPage,
   handleAdminStaffRatingsPage,
   handleStaffAccountPage,
-} from "./admin-staff-page-handlers.mjs";
+} from "./pages/admin-staff-pages.mjs";
 import {
   handleLogout,
   renderForbidden,
   renderNotFound,
   renderServerError,
-} from "./error-handlers.mjs";
+} from "./errors/handlers.mjs";
 import {
   html,
   loginPage,
@@ -40,7 +40,7 @@ import {
   parseTicketId,
   requestId,
   text,
-} from "./utils.mjs";
+} from "./core/utils.mjs";
 
 export function createApp({ db, environment = "local" }) {
   return {

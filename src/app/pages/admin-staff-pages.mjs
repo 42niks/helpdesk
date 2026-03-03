@@ -3,7 +3,7 @@ import {
   listApartmentReviewTexts,
   listPlatformStaffRatingsByAccountIds,
   listStaffLinkedApartments,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   doc,
   formatAverageRating,
@@ -12,11 +12,11 @@ import {
   navWithLogout,
   ratingLabel,
   staffTypeLabel,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 import {
   requireAdminSession,
   requireStaffSession,
-} from "./role-session-guards.mjs";
+} from "../auth/guards.mjs";
 
 export async function handleAdminAccountPage({ db, request, environment }) {
   const adminAuth = await requireAdminSession({ db, request, environment });

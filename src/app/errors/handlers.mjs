@@ -3,7 +3,7 @@ import {
   requireSession,
   revokeSession,
   sessionRoleForErrorPage,
-} from "./auth-session.mjs";
+} from "../auth/session.mjs";
 import {
   clearSessionCookie,
   errorPage,
@@ -11,7 +11,7 @@ import {
   parseForm,
   redirect,
   requestId,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 
 export async function handleLogout({ db, request, environment }) {
   const authResult = await requireSession({ db, request, environment });

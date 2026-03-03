@@ -1,50 +1,94 @@
-1. Apartment Helpdesk MVP milestones 1-5 are implemented end-to-end.
-2. Authentication uses username/password with bcrypt hash verification.
-3. Sessions are stored server-side with token hashing and sliding expiry.
-4. Session cookie is HttpOnly, SameSite=Lax, path-scoped, secure in production.
-5. CSRF token validation is enforced for authenticated POST mutations.
-6. Login routes users by role to resident, admin, or staff homes.
-7. Logout revokes the active session and clears the cookie.
-8. Resident home shows apartment profile and active ticket count.
-9. Resident ticket list is rendered server-side with status and assignee summary.
-10. Resident can open tickets through /tickets/new and POST /tickets.
-11. Ticket create validates issue type, title length, and description length.
-12. Ticket create enforces active-ticket cap (max 5) per resident flat.
-13. Ticket numbers are deterministic using apartment code plus padded ID.
-14. Ticket create writes immutable created event in ticket_events.
-15. Shared ticket detail route /tickets/:id is role-aware and access-controlled.
-16. Unauthorized ticket detail access returns 404 to prevent enumeration.
-17. Ticket detail includes apartment, resident, issue, status, and timeline.
-18. Assigned staff details are shown when available on ticket detail.
-19. Commenting is available across roles with visibility restrictions.
-20. Comment input is validated to 1-2000 characters after trim.
-21. Comments are blocked with conflict response once ticket is completed.
-22. Admin home shows apartment queue with practical status counts.
-23. Admin queue lists apartment tickets with resident and assignment context.
-24. Admin can assign/reassign staff via POST /tickets/:id/assign.
-25. Assignment requires active staff-apartment link in same apartment.
-26. Assignment enforces staff type matching ticket issue type.
-27. Assignment writes assigned/reassigned audit events.
-28. Admin can complete tickets for cancel/duplicate handling.
-29. Admin completion requires a cancellation reason.
-30. Admin completion writes admin audit event and admin comment trail.
-31. Staff home lists only tickets currently assigned to that staff user.
-32. Staff can move status assigned -> in_progress.
-33. Staff can move status in_progress -> completed.
-34. Invalid staff transitions return conflict response and no mutation.
-35. Resident review submission is supported on completed assigned tickets.
-36. Review supports empty, rating-only, and rating+text combinations.
-37. Review text without rating is rejected with validation error.
-38. Duplicate review submission per ticket is blocked with conflict.
-39. Resident staff ratings page is apartment-scoped.
-40. Resident ratings page shows linked staff summaries and text reviews.
-41. Admin staff page supports apartment scope with review text visibility.
-42. Admin staff page supports platform scope with count/average only.
-43. Database migration 0003 adds tickets, ticket_events, ticket_comments.
-44. Database migration 0004 adds staff_apartment_links and ticket_reviews.
-45. Schema version now reports as 4 through /_db/ health endpoint.
-46. Local seed and e2e setup include staff-apartment links for workflows.
-47. Unit tests cover security token behavior and input validation rules.
-48. Integration tests cover role auth, workflows, transitions, reviews, ratings.
-49. E2E tests cover login, resident flow, and full cross-role lifecycle flow.
-50. Cloudflare deploy completed successfully with remote D1 migrations applied.
+# Apartment Helpdesk: Current Status
+
+Last updated: 2026-03-03
+
+## 1. Overall Project Health
+1. Scope status: MVP milestones 1-5 are implemented.
+2. Delivery status: Core backend, SSR UI, migrations, and test coverage are in place.
+3. Runtime status: Works in local Node+SQLite and production Worker+D1 modes.
+4. Stability status: Main user workflows are covered by backend integration and frontend e2e tests.
+5. Current focus shift: Codebase readability and maintainability were improved via modular app + test refactor.
+
+## 2. What Has Been Delivered
+1. Role-based authentication with bcrypt password verification.
+2. Server-side session management with token hashing and sliding expiry.
+3. CSRF protection for authenticated POST mutations.
+4. Role-aware home routes for resident, admin, and staff.
+5. Resident ticket creation with validations and active ticket cap.
+6. Resident ticket list/detail with timeline and comments.
+7. Shared `/tickets/:id` detail route with strict visibility checks.
+8. Admin assignment and reassignment with staff-apartment link validation.
+9. Admin completion flow requiring cancellation reason and audit trail.
+10. Staff status transitions (`assigned -> in_progress -> completed`) with transition enforcement.
+11. Resident review submission with rating/text validation and duplicate prevention.
+12. Resident ratings page scoped to apartment-linked staff.
+13. Admin staff performance page with apartment and platform summary modes.
+14. Request and mutation structured logging with request IDs.
+15. Explicit error routes (`/403`, `/404`, `/500`) with role-aware navigation.
+
+## 3. Architecture and Refactor Status
+1. App entrypoint is now thin and route-focused.
+2. `src/app` is now domain-organized instead of flat.
+3. `src/app/auth/` contains security, session, and guard concerns.
+4. `src/app/core/` contains shared data access, utils, and server-rendered view helpers.
+5. `src/app/tickets/` contains ticket validations and ticket flow handlers.
+6. `src/app/pages/` contains resident/admin/staff page-level handlers.
+7. `src/app/errors/` centralizes logout + error page responses.
+8. `src/app/db/` contains runtime-specific adapters (Node, D1).
+9. Error/forbidden/not-found/server-error handling is centralized and reused.
+10. Result: no code file exceeds 1000 lines; code ownership boundaries are clearer.
+
+## 4. Database and Migration Status
+1. Migration framework supports ordered SQL migration execution with tracking table.
+2. Implemented migrations:
+- `0001_init.sql`
+- `0002_milestone1_auth_baseline.sql`
+- `0003_milestone2_resident_tickets.sql`
+- `0004_milestone3_workflows_reviews.sql`
+3. Milestone 4/5 features currently reuse schema introduced by migration 0004.
+4. Current schema version reported by app health check: `4`.
+
+## 5. Test Suite Status
+1. Test suite was reorganized for clarity and predictability.
+2. New test layout:
+- `tests/backend/unit/`
+- `tests/backend/integration/`
+- `tests/frontend/e2e/specs/`
+- `tests/frontend/e2e/setup/`
+3. File naming now removes redundant labels already conveyed by folder path.
+4. Milestone-driven naming is retained for quick traceability.
+5. Inventory is maintained in lowercase: `tests/test_inventory.md`.
+6. Current declaration counts:
+- Backend unit + integration: 48
+- Frontend e2e declarations: 4
+- E2E matrix executions per full run: 60
+7. Latest verification:
+- `npm test` passing
+- `npx playwright test --list` confirms expected e2e discovery matrix
+
+## 6. Deployment and Ops Status
+1. Cloudflare deployment path is configured and has been exercised.
+2. D1 migration flow is available through npm scripts.
+3. Local dev scripts exist for migrate/seed/dev loops.
+4. Health endpoints available:
+- `/_health/`
+- `/_db/`
+
+## 7. Readability and Manageability Improvements Completed
+1. App logic split into domain folders (`auth`, `core`, `tickets`, `pages`, `errors`, `db`).
+2. Routing orchestration simplified and easier to reason about.
+3. Test file naming standardized to reduce ambiguity.
+4. Test folders encode stack/test-level clearly, so filenames avoid redundancy.
+5. Inventory document is maintained as lowercase `tests/test_inventory.md`.
+
+## 8. Known Gaps / Follow-Ups
+1. Milestone labels in some legacy test titles still say `milestone 3+`; functionality is covered but wording can be normalized further.
+2. No separate migration `0005` exists because Milestone 5 currently did not require new schema changes.
+3. Additional hardening could include stricter CI gates and automated inventory drift checks.
+4. Optional cleanup: normalize all test titles to include milestone tags in output for faster CI scanning.
+
+## 9. Current Repository State Summary
+1. Core workflows are implemented and tested end-to-end.
+2. Code is now modular enough for safer incremental changes.
+3. Test organization is significantly clearer than the earlier flat structure.
+4. Project is in a stable state for iteration on UX, operations, or next-feature scope.

@@ -1,20 +1,30 @@
 # Apartment Helpdesk
 
-Server-rendered apartment ticketing system (MVP implemented).
+Server-rendered apartment ticketing system with role-based workflows for residents, admins, and staff.
 
-## About the project
+## Current Scope
 
-Apartment Helpdesk is a lightweight ticketing system for apartment operations.
-It is designed for resident issue reporting and role-based workflows between residents, apartment admins, and staff.
+MVP milestones 1-5 are implemented:
 
-Core product goals:
+- Auth + sessions + CSRF
+- Resident ticket create/list/detail/comment flows
+- Admin assignment/reassignment and cancellation-complete flow
+- Staff status transitions (`assigned -> in_progress -> completed`)
+- Resident reviews and apartment/platform staff ratings views
 
-- Server-rendered pages with no JavaScript required for primary flows
-- Mobile-first UX and low-overhead runtime
-- Clear authorization boundaries per apartment
-- Auditable ticket lifecycle (assignment, status updates, comments, reviews)
+## Architecture
 
-## Local development (recommended)
+The app is split by domain under [`src/app`](/Users/nikhiltr/helpdesk/src/app):
+
+- [`auth/`](/Users/nikhiltr/helpdesk/src/app/auth): session/auth/role guards
+- [`core/`](/Users/nikhiltr/helpdesk/src/app/core): shared data access, utils, views
+- [`tickets/`](/Users/nikhiltr/helpdesk/src/app/tickets): ticket flows and validations
+- [`pages/`](/Users/nikhiltr/helpdesk/src/app/pages): resident/admin/staff page handlers
+- [`errors/`](/Users/nikhiltr/helpdesk/src/app/errors): centralized error/logout handlers
+- [`db/`](/Users/nikhiltr/helpdesk/src/app/db): node + d1 adapters
+- [`index.mjs`](/Users/nikhiltr/helpdesk/src/app/index.mjs): thin route orchestration
+
+## Local Development
 
 ```bash
 cd /Users/nikhiltr/helpdesk
@@ -23,34 +33,64 @@ npm run migrate:local
 npm run dev
 ```
 
-Open `http://127.0.0.1:8787/`.
+Open [http://127.0.0.1:8787/](http://127.0.0.1:8787/).
 
-Quick checks:
+Quick health checks:
 
-- `http://127.0.0.1:8787/_health/` -> `ok`
-- `http://127.0.0.1:8787/_db/` -> `db ok (schema_version=4)`
+- [http://127.0.0.1:8787/_health/](http://127.0.0.1:8787/_health/) -> `ok`
+- [http://127.0.0.1:8787/_db/](http://127.0.0.1:8787/_db/) -> `db ok (schema_version=4)`
 
-Default local app DB is `local-dev-db` (inspect with `sqlite3 local-dev-db`).
-
-Separate coding/test DB is `local-test-db`.
+Default local DB is `local-dev-db`.
+Optional separate DB for dev/test runs: `local-test-db`.
 
 ```bash
 npm run migrate:test-db
 npm run dev:test-db
 ```
 
-## Cloudflare scaffold (ready when needed)
+## Testing
 
-This repo is already wired for Cloudflare Workers + D1 deployment.
+Backend tests:
 
 ```bash
-# set your D1 database_id in wrangler.toml first
-npm i
-npx wrangler d1 migrations apply helpdesk-db
-npx wrangler deploy
+npm test
+npm run test:unit
+npm run test:integration
 ```
 
-For local Wrangler dev (if needed):
+Frontend e2e:
+
+```bash
+npm run test:e2e
+```
+
+Test organization:
+
+- [`tests/backend/unit/`](/Users/nikhiltr/helpdesk/tests/backend/unit/)
+- [`tests/backend/integration/`](/Users/nikhiltr/helpdesk/tests/backend/integration/)
+- [`tests/frontend/e2e/specs/`](/Users/nikhiltr/helpdesk/tests/frontend/e2e/specs/)
+- [`tests/test_inventory.md`](/Users/nikhiltr/helpdesk/tests/test_inventory.md)
+
+## Migrations
+
+Implemented migrations:
+
+- `0001_init.sql`
+- `0002_milestone1_auth_baseline.sql`
+- `0003_milestone2_resident_tickets.sql`
+- `0004_milestone3_workflows_reviews.sql`
+
+Current schema version: `4`.
+
+## Cloudflare (Worker + D1)
+
+```bash
+# set D1 database_id in wrangler.toml
+npm run d1:migrate
+npm run deploy
+```
+
+Optional local Wrangler run:
 
 ```bash
 HOME="$(pwd)/.home" XDG_CONFIG_HOME="$(pwd)/.config" XDG_CACHE_HOME="$(pwd)/.cache" npm run dev:cf

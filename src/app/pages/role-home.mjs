@@ -11,12 +11,12 @@ import {
   listResidentTickets,
   listStaffAssignedTickets,
   listStaffLinkedApartments,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   adminTicketListHtml,
   residentTicketListHtml,
   staffTicketListHtml,
-} from "./views.mjs";
+} from "../core/views.mjs";
 import {
   html,
   htmlEscape,
@@ -24,11 +24,11 @@ import {
   pageWithLogout,
   parseAdminQueueFilters,
   staffTypeLabel,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 import {
   forbiddenForRole,
   requireSession,
-} from "./auth-session.mjs";
+} from "../auth/session.mjs";
 
 export async function handleRoleHome({ db, request, requiredRole, environment }) {
   const authResult = await requireSession({ db, request, environment });

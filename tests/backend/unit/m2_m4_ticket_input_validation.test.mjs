@@ -5,7 +5,7 @@ import {
   validateCommentInput,
   validateReviewInput,
   validateTicketCreateInput,
-} from "../../../src/app/tickets-validation.mjs";
+} from "../../../src/app/tickets/validation.mjs";
 
 test("validateTicketCreateInput accepts valid ticket input", () => {
   const result = validateTicketCreateInput({

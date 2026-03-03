@@ -1,13 +1,13 @@
 import {
   countResidentActiveTickets,
   createResidentTicket,
-} from "./data.mjs";
+} from "../core/data.mjs";
 import {
   validateTicketCreateInput,
-} from "./tickets-validation.mjs";
+} from "./validation.mjs";
 import {
   createTicketPage,
-} from "./views.mjs";
+} from "../core/views.mjs";
 import {
   actorLogShape,
   html,
@@ -15,13 +15,13 @@ import {
   parseForm,
   redirect,
   requestId,
-} from "./utils.mjs";
+} from "../core/utils.mjs";
 import {
   csrfForbiddenForRole,
-} from "./auth-session.mjs";
+} from "../auth/session.mjs";
 import {
   requireResidentSession,
-} from "./role-session-guards.mjs";
+} from "../auth/guards.mjs";
 
 export async function handleResidentCreateTicketPage({ db, request, environment }) {
   const residentAuth = await requireResidentSession({ db, request, environment });
