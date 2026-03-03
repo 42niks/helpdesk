@@ -3,6 +3,7 @@ import {
   html,
   htmlEscape,
   issueTypeLabel,
+  logoutPanel,
   navWithLogout,
   ratingLabel,
   staffTypeLabel,
@@ -10,25 +11,37 @@ import {
   ticketAgingBadge,
 } from "./utils.mjs";
 
+function statusChip(status) {
+  return `<span class="status-chip status-chip--${htmlEscape(status)}">${htmlEscape(statusLabel(status))}</span>`;
+}
+
+function kvGrid(rows) {
+  return [
+    '<div class="resident-meta kv-grid">',
+    rows
+      .map(([label, value]) => `<p><strong>${htmlEscape(label)}</strong> ${htmlEscape(value)}</p>`)
+      .join(""),
+    "</div>",
+  ].join("");
+}
+
 function residentTicketListHtml(tickets) {
   if (tickets.length === 0) {
-    return '<p class="small">No tickets yet. Use Create Ticket to open your first request.</p>';
+    return '<p class="empty-state">No tickets yet. Use Create Ticket to open your first request.</p>';
   }
   return [
     '<ul class="ticket-list">',
     tickets
       .map((ticket) => {
-        const assignedHtml = ticket.assigned_staff_name
-          ? `<p class="meta-row"><strong>Assigned Staff:</strong> ${htmlEscape(ticket.assigned_staff_name)}</p>`
-          : "";
+        const assignedLabel = ticket.assigned_staff_name || "Unassigned";
         return [
           '<li class="ticket-item">',
-          `<h3><a href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
-          `<p class="meta-row"><strong>Title:</strong> ${htmlEscape(ticket.title)}</p>`,
-          `<p class="meta-row"><strong>Issue:</strong> ${htmlEscape(issueTypeLabel(ticket.issue_type))}</p>`,
-          `<p class="meta-row"><strong>Status:</strong> ${htmlEscape(statusLabel(ticket.status))}</p>`,
-          assignedHtml,
-          `<p class="small">Updated: ${htmlEscape(ticket.updated_at)}</p>`,
+          '<div class="ticket-row-head">',
+          `<h3><a class="ticket-number-link" href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
+          statusChip(ticket.status),
+          "</div>",
+          `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
+          `<p class="ticket-row-meta">Issue: ${htmlEscape(issueTypeLabel(ticket.issue_type))} | Assigned: ${htmlEscape(assignedLabel)} | Updated: ${htmlEscape(ticket.updated_at)}</p>`,
           "</li>",
         ].join("");
       })
@@ -39,31 +52,24 @@ function residentTicketListHtml(tickets) {
 
 function adminTicketListHtml(tickets, nowMillis = Date.now()) {
   if (tickets.length === 0) {
-    return '<p class="small">No tickets in this apartment yet.</p>';
+    return '<p class="empty-state">No tickets in this apartment yet.</p>';
   }
   return [
     '<ul class="ticket-list">',
     tickets
       .map((ticket) => {
-        const assignedHtml = ticket.assigned_staff_name
-          ? `<p class="meta-row"><strong>Assigned Staff:</strong> ${htmlEscape(ticket.assigned_staff_name)}</p>`
-          : '<p class="meta-row"><strong>Assigned Staff:</strong> Unassigned</p>';
+        const assignedLabel = ticket.assigned_staff_name || "Unassigned";
         const agingBadge = ticketAgingBadge(ticket, nowMillis);
-        const agingHtml = agingBadge
-          ? `<p class="meta-row"><span class="badge">${htmlEscape(agingBadge)}</span></p>`
-          : "";
+        const agingHtml = agingBadge ? `<span class="badge">${htmlEscape(agingBadge)}</span>` : "";
         return [
           '<li class="ticket-item">',
-          `<h3><a href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
-          `<p class="meta-row"><strong>Flat:</strong> ${htmlEscape(ticket.resident_flat_number)}</p>`,
-          `<p class="meta-row"><strong>Resident:</strong> ${htmlEscape(ticket.resident_name)}</p>`,
-          `<p class="meta-row"><strong>Title:</strong> ${htmlEscape(ticket.title)}</p>`,
-          `<p class="meta-row"><strong>Issue:</strong> ${htmlEscape(issueTypeLabel(ticket.issue_type))}</p>`,
-          `<p class="meta-row"><strong>Status:</strong> ${htmlEscape(statusLabel(ticket.status))}</p>`,
-          assignedHtml,
-          agingHtml,
-          `<p class="small">Created: ${htmlEscape(ticket.created_at)}</p>`,
-          `<p class="small">Updated: ${htmlEscape(ticket.updated_at)}</p>`,
+          '<div class="ticket-row-head">',
+          `<h3><a class="ticket-number-link" href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
+          statusChip(ticket.status),
+          "</div>",
+          `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
+          `<p class="ticket-row-meta">Flat: ${htmlEscape(ticket.resident_flat_number)} | Resident: ${htmlEscape(ticket.resident_name)} | Issue: ${htmlEscape(issueTypeLabel(ticket.issue_type))}</p>`,
+          `<p class="ticket-row-meta">Assigned: ${htmlEscape(assignedLabel)} | Created: ${htmlEscape(ticket.created_at)} | Updated: ${htmlEscape(ticket.updated_at)}${agingHtml ? ` | ${agingHtml}` : ""}</p>`,
           "</li>",
         ].join("");
       })
@@ -74,7 +80,7 @@ function adminTicketListHtml(tickets, nowMillis = Date.now()) {
 
 function staffTicketListHtml(tickets) {
   if (tickets.length === 0) {
-    return '<p class="small">No assigned active tickets right now.</p>';
+    return '<p class="empty-state">No assigned active tickets right now.</p>';
   }
   return [
     '<ul class="ticket-list">',
@@ -82,13 +88,12 @@ function staffTicketListHtml(tickets) {
       .map((ticket) =>
         [
           '<li class="ticket-item">',
-          `<h3><a href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
-          `<p class="meta-row"><strong>Apartment:</strong> ${htmlEscape(ticket.apartment_name)}</p>`,
-          `<p class="meta-row"><strong>Flat:</strong> ${htmlEscape(ticket.resident_flat_number)}</p>`,
-          `<p class="meta-row"><strong>Title:</strong> ${htmlEscape(ticket.title)}</p>`,
-          `<p class="meta-row"><strong>Issue:</strong> ${htmlEscape(issueTypeLabel(ticket.issue_type))}</p>`,
-          `<p class="meta-row"><strong>Status:</strong> ${htmlEscape(statusLabel(ticket.status))}</p>`,
-          `<p class="small">Updated: ${htmlEscape(ticket.updated_at)}</p>`,
+          '<div class="ticket-row-head">',
+          `<h3><a class="ticket-number-link" href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
+          statusChip(ticket.status),
+          "</div>",
+          `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
+          `<p class="ticket-row-meta">Apartment: ${htmlEscape(ticket.apartment_name)} | Flat: ${htmlEscape(ticket.resident_flat_number)} | Issue: ${htmlEscape(issueTypeLabel(ticket.issue_type))} | Updated: ${htmlEscape(ticket.updated_at)}</p>`,
           "</li>",
         ].join(""),
       )
@@ -136,19 +141,22 @@ function createTicketPage({
           { href: "/resident/account", label: "Profile" },
         ],
       }),
+      '<header class="page-header">',
       "<h1>Resident Create Ticket</h1>",
-      '<div class="resident-meta">',
-      `<p><strong>Apartment:</strong> ${htmlEscape(residentProfile.apartment_name)}</p>`,
-      `<p><strong>Flat:</strong> ${htmlEscape(residentProfile.flat_number)}</p>`,
-      `<p><strong>Active Tickets:</strong> ${activeTicketCount}/5</p>`,
-      "</div>",
+      '<p class="page-subtitle">Create a maintenance request with clear details.</p>',
+      "</header>",
+      kvGrid([
+        ["Apartment:", residentProfile.apartment_name],
+        ["Flat:", residentProfile.flat_number],
+        ["Active Tickets:", `${activeTicketCount}/5`],
+      ]),
       formErrorHtml,
       capHtml,
       '<form method="post" action="/tickets" novalidate>',
       `<input type="hidden" name="csrf_token" value="${htmlEscape(session.csrfToken)}">`,
       '<label for="issue_type">Issue Type</label>',
       '<select id="issue_type" name="issue_type" required>',
-      `<option value="">Select issue type</option>`,
+      "<option value=\"\">Select issue type</option>",
       `<option value="electrical"${issueType === "electrical" ? " selected" : ""}>Electrical</option>`,
       `<option value="plumbing"${issueType === "plumbing" ? " selected" : ""}>Plumbing</option>`,
       "</select>",
@@ -161,7 +169,7 @@ function createTicketPage({
       descriptionError,
       `<button type="submit" class="wide-button"${canCreate ? "" : " disabled"}>Create Ticket</button>`,
       "</form>",
-      '<p><a href="/resident">Cancel and Return to Resident Home (All Tickets)</a></p>',
+      '<p class="small"><a href="/resident">Cancel and return to Resident Home (All Tickets)</a></p>',
     ].join(""),
   );
 }
@@ -190,13 +198,15 @@ function renderSubmittedReviewBlock({ review, ticket }) {
     return "";
   }
   return [
+    '<section class="section">',
     "<h2>Submitted Review</h2>",
-    '<div class="resident-meta">',
-    `<p><strong>Staff:</strong> ${htmlEscape(review.staff_name || ticket.assigned_staff_name || "Unknown")}</p>`,
-    `<p><strong>Rating:</strong> ${htmlEscape(ratingLabel(review.rating))}</p>`,
-    review.review_text ? `<p><strong>Review:</strong> ${htmlEscape(review.review_text)}</p>` : "",
-    `<p class="small">Submitted: ${htmlEscape(review.created_at)}</p>`,
-    "</div>",
+    kvGrid([
+      ["Staff:", review.staff_name || ticket.assigned_staff_name || "Unknown"],
+      ["Rating:", ratingLabel(review.rating)],
+      ["Submitted:", review.created_at],
+    ]),
+    review.review_text ? `<p class="meta-row"><strong>Review:</strong> ${htmlEscape(review.review_text)}</p>` : "",
+    "</section>",
   ].join("");
 }
 
@@ -235,14 +245,16 @@ function residentTicketDetailPage({
     : "";
   const assignedSection = ticket.assigned_staff_name
     ? [
+      '<section class="section">',
       "<h2>Assigned Staff</h2>",
-      '<div class="resident-meta">',
-      `<p><strong>Name:</strong> ${htmlEscape(ticket.assigned_staff_name)}</p>`,
-      `<p><strong>Type:</strong> ${htmlEscape(staffTypeLabel(ticket.assigned_staff_type))}</p>`,
-      `<p><strong>Mobile:</strong> ${htmlEscape(ticket.assigned_staff_mobile_number)}</p>`,
-      "</div>",
+      kvGrid([
+        ["Name:", ticket.assigned_staff_name],
+        ["Type:", staffTypeLabel(ticket.assigned_staff_type)],
+        ["Mobile:", ticket.assigned_staff_mobile_number],
+      ]),
+      "</section>",
     ].join("")
-    : '<p class="small">This ticket is not assigned yet.</p>';
+    : '<section class="section"><h2>Assigned Staff</h2><p class="empty-state">This ticket is not assigned yet.</p></section>';
   const eventsHtml = events.length
     ? [
       '<ul class="timeline">',
@@ -259,7 +271,7 @@ function residentTicketDetailPage({
         .join(""),
       "</ul>",
     ].join("")
-    : '<p class="small">No timeline events yet.</p>';
+    : '<p class="empty-state">No timeline events yet.</p>';
   const commentsHtml = comments.length
     ? [
       '<ul class="comment-list">',
@@ -267,15 +279,15 @@ function residentTicketDetailPage({
         .map((comment) =>
           [
             '<li class="comment-item">',
-            `<p class="meta-row"><strong>${htmlEscape(comment.author_role)}:</strong> ${htmlEscape(comment.comment_text)}</p>`,
-            `<p class="small">${htmlEscape(comment.created_at)}</p>`,
+            `<p class="comment-head">${htmlEscape(comment.author_role)} | ${htmlEscape(comment.created_at)}</p>`,
+            `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
             "</li>",
           ].join(""),
         )
         .join(""),
       "</ul>",
     ].join("")
-    : '<p class="small">No comments yet.</p>';
+    : '<p class="empty-state">No comments yet.</p>';
   const commentFormHtml = ticket.status === "completed"
     ? '<div class="message info">Comments are closed because this ticket is completed.</div>'
     : [
@@ -293,7 +305,7 @@ function residentTicketDetailPage({
   let reviewSectionHtml = "";
   if (ticket.status === "completed") {
     if (!review && !ticket.assigned_staff_account_id) {
-      reviewSectionHtml = '<div class="message info">Review is not available because no staff was assigned.</div>';
+      reviewSectionHtml = '<section class="section"><h2>Review</h2><div class="message info">Review is not available because no staff was assigned.</div></section>';
     } else if (!review) {
       const ratingOptions = ["", "1", "2", "3", "4", "5"]
         .map((value) => {
@@ -304,6 +316,7 @@ function residentTicketDetailPage({
         })
         .join("");
       reviewSectionHtml = [
+        '<section class="section">',
         "<h2>Review</h2>",
         reviewFormErrorHtml,
         '<form method="post" class="inline-form" action="/tickets/',
@@ -318,6 +331,7 @@ function residentTicketDetailPage({
         reviewTextErrorHtml,
         '<button type="submit" class="wide-button">Submit Review</button>',
         "</form>",
+        "</section>",
       ].join("");
     }
   }
@@ -333,26 +347,37 @@ function residentTicketDetailPage({
             { href: "/resident/account", label: "Profile" },
           ],
         }),
+        '<header class="page-header">',
         `<h1>Ticket ${htmlEscape(ticket.ticket_number)}</h1>`,
-        submittedReviewHtml,
-        '<div class="resident-meta">',
-        `<p><strong>Apartment:</strong> ${htmlEscape(residentProfile.apartment_name)}</p>`,
-        `<p><strong>Flat:</strong> ${htmlEscape(residentProfile.flat_number)}</p>`,
-        `<p><strong>Issue:</strong> ${htmlEscape(issueTypeLabel(ticket.issue_type))}</p>`,
-        `<p><strong>Status:</strong> ${htmlEscape(statusLabel(ticket.status))}</p>`,
-        `<p><strong>Title:</strong> ${htmlEscape(ticket.title)}</p>`,
-        `<p><strong>Description:</strong> ${htmlEscape(ticket.description)}</p>`,
-        `<p><strong>Created:</strong> ${htmlEscape(ticket.created_at)}</p>`,
-        `<p><strong>Updated:</strong> ${htmlEscape(ticket.updated_at)}</p>`,
-        "</div>",
+        '<p class="page-subtitle">Track progress and add updates for this request.</p>',
+        "</header>",
+        kvGrid([
+          ["Apartment:", residentProfile.apartment_name],
+          ["Flat:", residentProfile.flat_number],
+          ["Issue:", issueTypeLabel(ticket.issue_type)],
+          ["Status:", statusLabel(ticket.status)],
+          ["Title:", ticket.title],
+          ["Description:", ticket.description],
+          ["Created:", ticket.created_at],
+          ["Updated:", ticket.updated_at],
+        ]),
+        `<p class="meta-row">${statusChip(ticket.status)}</p>`,
         assignedSection,
+        submittedReviewHtml,
+        reviewSectionHtml,
+        '<section class="section">',
+        "<h2>Add Comment</h2>",
+        commentFormErrorHtml,
+        commentFormHtml,
+        "</section>",
+        '<section class="section">',
         "<h2>Timeline</h2>",
         eventsHtml,
+        "</section>",
+        '<section class="section">',
         "<h2>Comments</h2>",
-        commentFormErrorHtml,
         commentsHtml,
-        commentFormHtml,
-        reviewSectionHtml,
+        "</section>",
       ].join(""),
     ),
     responseCode,
@@ -366,6 +391,7 @@ function residentPlaceholderPage({
   secondaryLink,
   content,
   extraHtml = "",
+  showLogout = false,
 }) {
   return html(
     doc(
@@ -378,9 +404,12 @@ function residentPlaceholderPage({
             secondaryLink,
           ],
         }),
+        '<header class="page-header">',
         `<h1>${htmlEscape(title)}</h1>`,
+        "</header>",
         `<div class="message info">${htmlEscape(content)}</div>`,
         extraHtml,
+        showLogout ? logoutPanel({ csrfToken: session.csrfToken }) : "",
       ].join(""),
     ),
   );
@@ -414,7 +443,7 @@ function roleSecondaryLinks(role) {
 
 function renderTimeline(events) {
   if (events.length === 0) {
-    return '<p class="small">No timeline events yet.</p>';
+    return '<p class="empty-state">No timeline events yet.</p>';
   }
   return [
     '<ul class="timeline">',
@@ -435,7 +464,7 @@ function renderTimeline(events) {
 
 function renderComments(comments) {
   if (comments.length === 0) {
-    return '<p class="small">No comments yet.</p>';
+    return '<p class="empty-state">No comments yet.</p>';
   }
   return [
     '<ul class="comment-list">',
@@ -443,8 +472,8 @@ function renderComments(comments) {
       .map((comment) =>
         [
           '<li class="comment-item">',
-          `<p class="meta-row"><strong>${htmlEscape(comment.author_role)}:</strong> ${htmlEscape(comment.comment_text)}</p>`,
-          `<p class="small">${htmlEscape(comment.created_at)}</p>`,
+          `<p class="comment-head">${htmlEscape(comment.author_role)} | ${htmlEscape(comment.created_at)}</p>`,
+          `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
           "</li>",
         ].join(""),
       )
@@ -580,14 +609,16 @@ function operatorTicketDetailPage({
   const submittedReviewHtml = renderSubmittedReviewBlock({ review, ticket });
   const assignedSection = ticket.assigned_staff_name
     ? [
+      '<section class="section">',
       "<h2>Assigned Staff</h2>",
-      '<div class="resident-meta">',
-      `<p><strong>Name:</strong> ${htmlEscape(ticket.assigned_staff_name)}</p>`,
-      `<p><strong>Type:</strong> ${htmlEscape(staffTypeLabel(ticket.assigned_staff_type))}</p>`,
-      `<p><strong>Mobile:</strong> ${htmlEscape(ticket.assigned_staff_mobile_number)}</p>`,
-      "</div>",
+      kvGrid([
+        ["Name:", ticket.assigned_staff_name],
+        ["Type:", staffTypeLabel(ticket.assigned_staff_type)],
+        ["Mobile:", ticket.assigned_staff_mobile_number],
+      ]),
+      "</section>",
     ].join("")
-    : '<p class="small">This ticket is currently unassigned.</p>';
+    : '<section class="section"><h2>Assigned Staff</h2><p class="empty-state">This ticket is currently unassigned.</p></section>';
   const assignmentHtml = role === "admin"
     ? renderAdminAssignForm({
       session,
@@ -615,24 +646,26 @@ function operatorTicketDetailPage({
       `Ticket ${ticket.ticket_number}`,
       [
         navWithLogout({ csrfToken: session.csrfToken, links }),
+        '<header class="page-header">',
         `<h1>Ticket ${htmlEscape(ticket.ticket_number)}</h1>`,
-        submittedReviewHtml,
-        '<div class="resident-meta">',
-        `<p><strong>Apartment:</strong> ${htmlEscape(ticket.apartment_name)}</p>`,
-        `<p><strong>Flat:</strong> ${htmlEscape(ticket.resident_flat_number)}</p>`,
-        `<p><strong>Resident:</strong> ${htmlEscape(ticket.resident_name)}</p>`,
-        `<p><strong>Issue:</strong> ${htmlEscape(issueTypeLabel(ticket.issue_type))}</p>`,
-        `<p><strong>Status:</strong> ${htmlEscape(statusLabel(ticket.status))}</p>`,
-        `<p><strong>Title:</strong> ${htmlEscape(ticket.title)}</p>`,
-        `<p><strong>Description:</strong> ${htmlEscape(ticket.description)}</p>`,
-        "</div>",
+        '<p class="page-subtitle">Review details and act on the next valid workflow step.</p>',
+        "</header>",
+        kvGrid([
+          ["Apartment:", ticket.apartment_name],
+          ["Flat:", ticket.resident_flat_number],
+          ["Resident:", ticket.resident_name],
+          ["Issue:", issueTypeLabel(ticket.issue_type)],
+          ["Status:", statusLabel(ticket.status)],
+          ["Title:", ticket.title],
+          ["Description:", ticket.description],
+        ]),
+        `<p class="meta-row">${statusChip(ticket.status)}</p>`,
         assignedSection,
+        submittedReviewHtml,
+        '<section class="section">',
         assignmentHtml,
         statusHtml,
-        "<h2>Timeline</h2>",
-        renderTimeline(events),
-        "<h2>Comments</h2>",
-        renderComments(comments),
+        "<h2>Add Comment</h2>",
         renderCommentForm({
           session,
           ticketId: ticket.id,
@@ -641,6 +674,15 @@ function operatorTicketDetailPage({
           errors: formState.commentErrors || {},
           formError: formState.commentError || "",
         }),
+        "</section>",
+        '<section class="section">',
+        "<h2>Timeline</h2>",
+        renderTimeline(events),
+        "</section>",
+        '<section class="section">',
+        "<h2>Comments</h2>",
+        renderComments(comments),
+        "</section>",
       ].join(""),
     ),
     responseCode,

@@ -54,7 +54,8 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
         csrfToken: session.csrfToken,
         detailsHtml: [
           '<section class="section">',
-          '<div class="resident-meta">',
+          '<div class="section-header"><h2>Resident Summary</h2></div>',
+          '<div class="resident-meta kv-grid">',
           `<p><strong>Apartment:</strong> ${htmlEscape(residentProfile.apartment_name)}</p>`,
           `<p><strong>Flat:</strong> ${htmlEscape(residentProfile.flat_number)}</p>`,
           `<p><strong>Resident:</strong> ${htmlEscape(residentProfile.full_name)}</p>`,
@@ -74,6 +75,7 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
             label: "Create Ticket",
           }
           : null,
+        primaryActionSticky: true,
         links: [
           { href: "/resident/staff-ratings", label: "Resident Staff Ratings" },
           { href: "/resident/account", label: "Profile" },
@@ -126,6 +128,7 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
     ];
 
     const filterFormHtml = [
+      '<div class="resident-meta">',
       '<form method="get" action="/admin" novalidate>',
       '<label for="status">Status</label>',
       '<select id="status" name="status">',
@@ -153,6 +156,7 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
       "</select>",
       '<button type="submit" class="wide-button">Apply Filters</button>',
       "</form>",
+      "</div>",
     ].join("");
 
     const queryForPage = (page) => {
@@ -171,12 +175,10 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
       return `/admin?${params.toString()}`;
     };
 
-    const paginationHtml = [
-      '<div class="resident-meta">',
-      `<p><strong>Page ${currentPage} of ${totalPages}</strong> • ${totalTickets} matching ticket(s)</p>`,
-      currentPage > 1 ? `<p><a href="${queryForPage(currentPage - 1)}">Previous Page</a></p>` : "",
-      currentPage < totalPages ? `<p><a href="${queryForPage(currentPage + 1)}">Next Page</a></p>` : "",
-      "</div>",
+    const paginationParts = [
+      `<p class="section-note"><strong>Page ${currentPage} of ${totalPages}</strong> | ${totalTickets} matching ticket(s)</p>`,
+      currentPage > 1 ? `<p class="section-note"><a href="${queryForPage(currentPage - 1)}">Previous Page</a></p>` : "",
+      currentPage < totalPages ? `<p class="section-note"><a href="${queryForPage(currentPage + 1)}">Next Page</a></p>` : "",
     ].join("");
 
     return html(
@@ -186,10 +188,11 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
         csrfToken: session.csrfToken,
         detailsHtml: [
           '<section class="section">',
-          '<div class="resident-meta">',
+          '<div class="section-header"><h2>Apartment Summary</h2></div>',
+          '<div class="resident-meta kv-grid">',
           `<p><strong>Apartment:</strong> ${htmlEscape(adminProfile.apartment_name)}</p>`,
           "<p><strong>Flat:</strong> N/A (Admin account)</p>",
-          '<p><strong>Shared Account:</strong> This login may be used by multiple apartment managers.</p>',
+          "<p><strong>Shared Account:</strong> This login may be used by multiple apartment managers.</p>",
           `<p><strong>Open:</strong> ${kpi.open}</p>`,
           `<p><strong>Assigned:</strong> ${kpi.assigned}</p>`,
           `<p><strong>In Progress:</strong> ${kpi.inProgress}</p>`,
@@ -204,9 +207,9 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
           "</section>",
           '<section class="section">',
           '<div class="section-header"><h2>Apartment Ticket Queue</h2></div>',
-          paginationHtml,
+          paginationParts,
           adminTicketListHtml(tickets),
-          paginationHtml,
+          paginationParts,
           "</section>",
         ].join(""),
         links: [
@@ -232,7 +235,8 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
       links: [{ href: "/staff/account", label: "Profile" }],
       detailsHtml: [
         '<section class="section">',
-        '<div class="resident-meta">',
+        '<div class="section-header"><h2>Staff Summary</h2></div>',
+        '<div class="resident-meta kv-grid">',
         `<p><strong>Name:</strong> ${htmlEscape(staffProfile.full_name)}</p>`,
         `<p><strong>Type:</strong> ${htmlEscape(staffTypeLabel(staffProfile.staff_type))}</p>`,
         `<p><strong>Mobile:</strong> ${htmlEscape(staffProfile.mobile_number)}</p>`,

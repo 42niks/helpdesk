@@ -38,7 +38,9 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await expect(page).toHaveURL(/\/tickets\/\d+$/);
   const ticketPath = new URL(page.url()).pathname;
 
-  await page.locator("nav").getByRole("button", { name: "Logout" }).click();
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page).toHaveURL(/\/resident\/account$/);
+  await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\?reason=logged_out$/);
 
   await page.getByLabel("Username").fill("admin_pm");
@@ -55,7 +57,9 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await expect(page.getByRole("heading", { name: "Assigned Staff" })).toBeVisible();
   await expect(page.getByText(/Name:\s*Electric Staff/i)).toBeVisible();
 
-  await page.locator("nav").getByRole("button", { name: "Logout" }).click();
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page).toHaveURL(/\/admin\/account$/);
+  await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\?reason=logged_out$/);
 
   await page.getByLabel("Username").fill("staff_electric_1");
@@ -78,7 +82,9 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await page.getByRole("button", { name: "Update Status" }).click();
   await expect(page.getByText(/Status:\s*Completed/i)).toBeVisible();
 
-  await page.locator("nav").getByRole("button", { name: "Logout" }).click();
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page).toHaveURL(/\/staff\/account$/);
+  await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\?reason=logged_out$/);
 
   await page.getByLabel("Username").fill("resident_flat101");

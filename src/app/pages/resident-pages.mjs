@@ -31,13 +31,15 @@ export async function handleResidentAccountPage({ db, request, environment }) {
     secondaryLink: { href: "/resident/staff-ratings", label: "Resident Staff Ratings" },
     content: "Resident account management is planned for a later milestone.",
     extraHtml: [
-      '<div class="resident-meta">',
+      '<div class="section-header"><h2>Profile Details</h2></div>',
+      '<div class="resident-meta kv-grid">',
       `<p><strong>Name:</strong> ${htmlEscape(residentProfile.full_name)}</p>`,
       `<p><strong>Apartment:</strong> ${htmlEscape(residentProfile.apartment_name)}</p>`,
       `<p><strong>Flat:</strong> ${htmlEscape(residentProfile.flat_number)}</p>`,
       `<p><strong>Mobile:</strong> ${htmlEscape(residentProfile.mobile_number)}</p>`,
       "</div>",
     ].join(""),
+    showLogout: true,
   });
 }
 
@@ -68,7 +70,7 @@ export async function handleResidentStaffRatingsPage({ db, request, environment 
         .join(""),
       "</ul>",
     ].join("")
-    : '<p class="small">No active linked staff found for this apartment.</p>';
+    : '<p class="empty-state">No active linked staff found for this apartment.</p>';
   const reviewRows = reviews.length
     ? [
       "<h2>Recent Reviews</h2>",
@@ -77,16 +79,15 @@ export async function handleResidentStaffRatingsPage({ db, request, environment 
         .map((review) =>
           [
             '<li class="comment-item">',
-            `<p class="meta-row"><strong>${htmlEscape(review.staff_name)} (${htmlEscape(ratingLabel(review.rating))})</strong></p>`,
-            `<p class="meta-row">${htmlEscape(review.review_text)}</p>`,
-            `<p class="small">${htmlEscape(review.ticket_number)} • ${htmlEscape(review.created_at)}</p>`,
+            `<p class="comment-head">${htmlEscape(review.staff_name)} (${htmlEscape(ratingLabel(review.rating))}) | ${htmlEscape(review.ticket_number)} | ${htmlEscape(review.created_at)}</p>`,
+            `<p class="comment-body">${htmlEscape(review.review_text)}</p>`,
             "</li>",
           ].join(""),
         )
         .join(""),
       "</ul>",
     ].join("")
-    : '<p class="small">No text reviews yet.</p>';
+    : '<p class="empty-state">No text reviews yet.</p>';
 
   return html(
     doc(
@@ -99,10 +100,17 @@ export async function handleResidentStaffRatingsPage({ db, request, environment 
             { href: "/resident/account", label: "Profile" },
           ],
         }),
+        '<header class="page-header">',
         "<h1>Resident Staff Ratings</h1>",
+        '<p class="page-subtitle">See apartment-level ratings and latest review notes.</p>',
+        "</header>",
+        '<section class="section">',
         "<h2>Linked Staff Summary</h2>",
         summaryRows,
+        "</section>",
+        '<section class="section">',
         reviewRows,
+        "</section>",
       ].join(""),
     ),
   );

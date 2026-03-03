@@ -9,6 +9,7 @@ import {
   formatAverageRating,
   html,
   htmlEscape,
+  logoutPanel,
   navWithLogout,
   ratingLabel,
   staffTypeLabel,
@@ -35,12 +36,19 @@ export async function handleAdminAccountPage({ db, request, environment }) {
             { href: "/admin/staff", label: "Apartment Staff Performance" },
           ],
         }),
+        '<header class="page-header">',
         "<h1>Admin Account</h1>",
-        '<div class="resident-meta">',
+        '<p class="page-subtitle">Account and session settings.</p>',
+        "</header>",
+        '<section class="section">',
+        "<h2>Profile Details</h2>",
+        '<div class="resident-meta kv-grid">',
         `<p><strong>Display Name:</strong> ${htmlEscape(adminProfile.display_name)}</p>`,
         `<p><strong>Apartment:</strong> ${htmlEscape(adminProfile.apartment_name)}</p>`,
         `<p><strong>Mobile:</strong> ${htmlEscape(adminProfile.mobile_number || "N/A")}</p>`,
         "</div>",
+        "</section>",
+        logoutPanel({ csrfToken: session.csrfToken }),
       ].join(""),
     ),
   );
@@ -55,12 +63,16 @@ export async function handleStaffAccountPage({ db, request, environment }) {
   const linkedApartments = await listStaffLinkedApartments(db, session.accountId);
   const apartmentsHtml = linkedApartments.length
     ? [
+      '<section class="section">',
       "<h2>Linked Apartments</h2>",
-      "<ul>",
-      linkedApartments.map((row) => `<li>${htmlEscape(row.name)}</li>`).join(""),
+      '<ul class="ticket-list">',
+      linkedApartments
+        .map((row) => `<li class="ticket-item"><p class="ticket-row-title">${htmlEscape(row.name)}</p></li>`)
+        .join(""),
       "</ul>",
+      "</section>",
     ].join("")
-    : '<p class="small">No active apartment links.</p>';
+    : '<p class="empty-state">No active apartment links.</p>';
   return html(
     doc(
       "Staff Account",
@@ -71,13 +83,20 @@ export async function handleStaffAccountPage({ db, request, environment }) {
             { href: "/staff", label: "<- Staff Home (Assigned Tickets)" },
           ],
         }),
+        '<header class="page-header">',
         "<h1>Staff Account</h1>",
-        '<div class="resident-meta">',
+        '<p class="page-subtitle">Profile, linked apartments, and session controls.</p>',
+        "</header>",
+        '<section class="section">',
+        "<h2>Profile Details</h2>",
+        '<div class="resident-meta kv-grid">',
         `<p><strong>Name:</strong> ${htmlEscape(staffProfile.full_name)}</p>`,
         `<p><strong>Type:</strong> ${htmlEscape(staffTypeLabel(staffProfile.staff_type))}</p>`,
         `<p><strong>Mobile:</strong> ${htmlEscape(staffProfile.mobile_number)}</p>`,
         "</div>",
+        "</section>",
         apartmentsHtml,
+        logoutPanel({ csrfToken: session.csrfToken }),
       ].join(""),
     ),
   );
@@ -126,7 +145,7 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
         .join(""),
       "</ul>",
     ].join("")
-    : '<p class="small">No active linked staff found for this apartment.</p>';
+    : '<p class="empty-state">No active linked staff found for this apartment.</p>';
   const reviewRows = reviews.length
     ? [
       "<h2>Recent Reviews</h2>",
@@ -135,16 +154,15 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
         .map((review) =>
           [
             '<li class="comment-item">',
-            `<p class="meta-row"><strong>${htmlEscape(review.staff_name)} (${htmlEscape(ratingLabel(review.rating))})</strong></p>`,
-            `<p class="meta-row">${htmlEscape(review.review_text)}</p>`,
-            `<p class="small">${htmlEscape(review.ticket_number)} • ${htmlEscape(review.created_at)}</p>`,
+            `<p class="comment-head">${htmlEscape(review.staff_name)} (${htmlEscape(ratingLabel(review.rating))}) | ${htmlEscape(review.ticket_number)} | ${htmlEscape(review.created_at)}</p>`,
+            `<p class="comment-body">${htmlEscape(review.review_text)}</p>`,
             "</li>",
           ].join(""),
         )
         .join(""),
       "</ul>",
     ].join("")
-    : '<p class="small">No text reviews yet.</p>';
+    : '<p class="empty-state">No text reviews yet.</p>';
 
   return html(
     doc(
@@ -157,22 +175,34 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
             { href: "/admin/account", label: "Profile" },
           ],
         }),
+        '<header class="page-header">',
         "<h1>Apartment Staff Performance</h1>",
-        '<div class="resident-meta">',
+        '<p class="page-subtitle">Track apartment and optional platform-wide staff ratings.</p>',
+        "</header>",
+        '<div class="resident-meta kv-grid">',
         `<p><strong>Apartment:</strong> ${htmlEscape(adminProfile.apartment_name)}</p>`,
         "</div>",
+        '<section class="section">',
+        "<h2>View Controls</h2>",
+        '<div class="resident-meta">',
         '<form method="get" action="/admin/staff" novalidate>',
         '<label for="show_platform">',
         `<input type="checkbox" id="show_platform" name="show_platform" value="1"${showPlatform ? " checked" : ""}> Show Platform-Wide Ratings`,
         "</label>",
         '<button type="submit" class="wide-button">Apply View</button>',
         "</form>",
+        "</div>",
+        "</section>",
         showPlatform
           ? '<div class="message info">Platform-wide averages and counts are shown alongside apartment metrics.</div>'
           : "",
+        '<section class="section">',
         "<h2>Linked Staff Summary</h2>",
         summaryRows,
+        "</section>",
+        '<section class="section">',
         reviewRows,
+        "</section>",
       ].join(""),
     ),
   );

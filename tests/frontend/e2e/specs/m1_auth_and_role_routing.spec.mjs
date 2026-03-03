@@ -15,8 +15,10 @@ test("resident can login from homepage and logout", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Profile" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Create Ticket" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create Ticket" })).toHaveCount(0);
-  await expect(page.locator("nav").getByRole("button", { name: "Logout" })).toBeVisible();
+  await expect(page.locator("nav").getByRole("button", { name: "Logout" })).toHaveCount(0);
 
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page).toHaveURL(/\/resident\/account$/);
   await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\/\?reason=logged_out$/);
   await expect(page.getByText("You have been logged out.")).toBeVisible();
@@ -34,6 +36,8 @@ test("admin and staff are routed to their role homes", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Profile" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Admin Account" })).toHaveCount(0);
 
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page).toHaveURL(/\/admin\/account$/);
   await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\/\?reason=logged_out$/);
 

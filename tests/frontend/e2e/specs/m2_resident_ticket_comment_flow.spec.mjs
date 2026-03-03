@@ -35,7 +35,9 @@ test("resident can create a ticket and add a comment from ticket detail", async 
   await expect(page).toHaveURL(/\/resident$/);
   await expect(page.locator(".ticket-item").filter({ hasText: ticketTitle }).first()).toBeVisible();
 
-  await page.locator("nav").getByRole("button", { name: "Logout" }).click();
+  await page.getByRole("link", { name: "Profile" }).click();
+  await expect(page).toHaveURL(/\/resident\/account$/);
+  await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\?reason=logged_out$/);
 
   await page.getByLabel("Username").fill("admin_pm");
