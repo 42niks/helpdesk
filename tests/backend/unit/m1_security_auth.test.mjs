@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { createSessionToken, hashSessionToken } from "../../src/app/security.mjs";
+import { createSessionToken, hashSessionToken } from "../../../src/app/security.mjs";
 
 test("createSessionToken returns a non-empty token", () => {
   const token = createSessionToken();

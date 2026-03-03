@@ -3,7 +3,7 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import bcrypt from "bcryptjs";
 
-import { applyMigrations } from "../../src/app/migrations.mjs";
+import { applyMigrations } from "../../../../src/app/migrations.mjs";
 
 function nowIso() {
   return new Date().toISOString();

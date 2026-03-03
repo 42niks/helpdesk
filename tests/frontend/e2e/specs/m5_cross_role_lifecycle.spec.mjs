@@ -1,9 +1,24 @@
 import { test, expect } from "@playwright/test";
 
 test("admin assignment, staff completion, and resident review flow", async ({ page }) => {
-  const ticketTitle = "Balcony light tube flickers repeatedly";
-  const ticketDescription = "The balcony light tube keeps flickering and needs electrician support.";
-  const reviewText = "Great and fast electrical repair.";
+  const suffix = `${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  const ticketTitle = `Balcony light tube flickers repeatedly ${suffix}`;
+  const ticketDescription = `The balcony light tube keeps flickering and needs electrician support. ${suffix}`;
+  const reviewText = `Great and fast electrical repair ${suffix}.`;
+  const staffComment = `Staff update before completion ${suffix}.`;
+
+  const staffRatingCount = async () => {
+    const staffCard = page.locator(".ticket-item").filter({
+      has: page.getByRole("heading", { name: "Electric Staff" }),
+    }).first();
+    await expect(staffCard).toBeVisible();
+    const cardText = (await staffCard.textContent()) || "";
+    const match = cardText.match(/Ratings:\s*(\d+)/i);
+    if (!match) {
+      throw new Error("Could not extract staff rating count from resident ratings page.");
+    }
+    return Number.parseInt(match[1], 10);
+  };
 
   await page.goto("/");
   await page.getByLabel("Username").fill("resident_flat101");
@@ -11,12 +26,17 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await page.getByRole("button", { name: "Login" }).click();
   await expect(page).toHaveURL(/\/resident$/);
 
+  await page.goto("/resident/staff-ratings");
+  const ratingCountBefore = await staffRatingCount();
+  await page.goto("/resident");
+
   await page.getByRole("button", { name: "Create Ticket" }).click();
   await page.getByLabel("Issue Type").selectOption("electrical");
   await page.getByLabel("Title").fill(ticketTitle);
   await page.getByLabel("Description").fill(ticketDescription);
   await page.getByRole("button", { name: "Create Ticket" }).click();
   await expect(page).toHaveURL(/\/tickets\/\d+$/);
+  const ticketPath = new URL(page.url()).pathname;
 
   await page.locator("nav").getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\?reason=logged_out$/);
@@ -25,10 +45,10 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await page.getByLabel("Password").fill("password123");
   await page.getByRole("button", { name: "Login" }).click();
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByText(ticketTitle)).toBeVisible();
+  await expect(page.locator(".ticket-item").filter({ hasText: ticketTitle }).first()).toBeVisible();
 
-  await page.locator('a[href^="/tickets/"]').first().click();
-  await expect(page).toHaveURL(/\/tickets\/\d+$/);
+  await page.goto(ticketPath);
+  await expect(page).toHaveURL(new RegExp(`${ticketPath}$`));
 
   await page.getByLabel("Assign Staff").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Save Assignment" }).click();
@@ -43,8 +63,12 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await page.getByRole("button", { name: "Login" }).click();
   await expect(page).toHaveURL(/\/staff$/);
 
-  await page.locator('a[href^="/tickets/"]').first().click();
-  await expect(page).toHaveURL(/\/tickets\/\d+$/);
+  await page.goto(ticketPath);
+  await expect(page).toHaveURL(new RegExp(`${ticketPath}$`));
+
+  await page.getByLabel("Add Comment").fill(staffComment);
+  await page.getByRole("button", { name: "Add Comment" }).click();
+  await expect(page.getByText(staffComment)).toBeVisible();
 
   await page.getByLabel("Next Status").selectOption("in_progress");
   await page.getByRole("button", { name: "Update Status" }).click();
@@ -62,8 +86,8 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await page.getByRole("button", { name: "Login" }).click();
   await expect(page).toHaveURL(/\/resident$/);
 
-  await page.locator('a[href^="/tickets/"]').first().click();
-  await expect(page).toHaveURL(/\/tickets\/\d+$/);
+  await page.goto(ticketPath);
+  await expect(page).toHaveURL(new RegExp(`${ticketPath}$`));
   await page.getByLabel("Rating (optional)").selectOption("5");
   await page.getByLabel("Review Text (optional)").fill(reviewText);
   await page.getByRole("button", { name: "Submit Review" }).click();
@@ -73,4 +97,6 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await expect(page).toHaveURL(/\/resident\/staff-ratings$/);
   await expect(page.getByRole("heading", { name: "Electric Staff" })).toBeVisible();
   await expect(page.getByText(reviewText)).toBeVisible();
+  const ratingCountAfter = await staffRatingCount();
+  await expect(ratingCountAfter).toBe(ratingCountBefore + 1);
 });
