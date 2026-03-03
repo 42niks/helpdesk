@@ -230,8 +230,7 @@ export async function handleTicketComment({ db, request, environment, ticketId, 
   }
 
   const createdAt = now().toISOString();
-  await db.exec("begin");
-  try {
+  await db.transaction(async () => {
     await db.run(
       [
         "insert into ticket_comments",
@@ -244,11 +243,7 @@ export async function handleTicketComment({ db, request, environment, ticketId, 
       "update tickets set updated_at = ? where id = ?",
       [createdAt, ticketId],
     );
-    await db.exec("commit");
-  } catch (error) {
-    await db.exec("rollback");
-    throw error;
-  }
+  });
 
   logMutationRecord({
     requestIdValue,

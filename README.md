@@ -64,6 +64,12 @@ Frontend e2e:
 npm run test:e2e
 ```
 
+Cloudflare local runtime e2e (Worker + D1 via Wrangler):
+
+```bash
+npm run test:e2e:cf-local
+```
+
 Test organization:
 
 - [`tests/backend/unit/`](/Users/nikhiltr/helpdesk/tests/backend/unit/)
@@ -94,4 +100,10 @@ Optional local Wrangler run:
 
 ```bash
 HOME="$(pwd)/.home" XDG_CONFIG_HOME="$(pwd)/.config" XDG_CACHE_HOME="$(pwd)/.cache" npm run dev:cf
+```
+
+Cloudflare local e2e prep (applies D1 migrations and seeds fixture data into local Wrangler persistence):
+
+```bash
+npm run cf:e2e:prepare
 ```

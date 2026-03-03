@@ -81,6 +81,7 @@
 ## Frontend E2E Setup
 
 - `tests/frontend/e2e/setup/backend_seed.mjs`
+- `tests/frontend/e2e/setup/d1_seed.sql`
 
 ## Totals
 

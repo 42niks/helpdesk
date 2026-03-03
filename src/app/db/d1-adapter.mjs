@@ -20,6 +20,11 @@ export function createD1DbAdapter(d1Database) {
     async exec(sql) {
       await d1Database.exec(sql);
     },
+    async transaction(fn) {
+      // D1 does not support raw BEGIN/COMMIT/ROLLBACK via exec in this runtime.
+      // Keep this API for shared app logic; multi-statement atomicity is not guaranteed here.
+      return fn();
+    },
     close() {},
   };
 }

@@ -1,5 +1,7 @@
 # Codex Lessons
 
+- Always keep documentation up to date. If I ask you to commit and push, if the documentation is not up to date, then remind me to ask you to update documentation first and then to commit and push.
+
 ## Collaboration Preferences
 - Follow instructions exactly and avoid adding extra work the user did not ask for.
 - Confirm unclear requirements before coding when asked to pause.

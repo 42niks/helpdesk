@@ -16,6 +16,7 @@ dist/
 .wrangler/
 playwright-report/
 test-results/
+.tmp/
 local-test-db
 local-dev-db
 local/seed-milestone1.mjs

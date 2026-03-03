@@ -408,8 +408,7 @@ async function createResidentTicket({ db, residentProfile, session, input }) {
   const createdAt = now().toISOString();
   const pendingTicketNumber = `pending-${crypto.randomUUID()}`;
 
-  await db.exec("begin");
-  try {
+  return db.transaction(async () => {
     await db.run(
       [
         "insert into tickets",
@@ -452,12 +451,8 @@ async function createResidentTicket({ db, residentProfile, session, input }) {
       ].join(" "),
       [ticketId, session.accountId, createdAt],
     );
-    await db.exec("commit");
     return ticketId;
-  } catch (error) {
-    await db.exec("rollback");
-    throw error;
-  }
+  });
 }
 
 export {

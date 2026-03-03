@@ -21,6 +21,17 @@ export function createNodeDbAdapter(sqlitePath) {
     async exec(sql) {
       db.exec(sql);
     },
+    async transaction(fn) {
+      db.exec("begin");
+      try {
+        const result = await fn();
+        db.exec("commit");
+        return result;
+      } catch (error) {
+        db.exec("rollback");
+        throw error;
+      }
+    },
     close() {
       db.close();
     },

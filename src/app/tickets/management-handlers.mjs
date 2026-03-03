@@ -139,8 +139,7 @@ export async function handleAdminAssignTicket({ db, request, environment, ticket
     return redirect(`/tickets/${ticketId}`);
   }
 
-  await db.exec("begin");
-  try {
+  await db.transaction(async () => {
     await db.run(
       [
         "update tickets",
@@ -168,12 +167,7 @@ export async function handleAdminAssignTicket({ db, request, environment, ticket
         nowIso,
       ],
     );
-
-    await db.exec("commit");
-  } catch (error) {
-    await db.exec("rollback");
-    throw error;
-  }
+  });
 
   logMutationRecord({
     requestIdValue,
@@ -229,8 +223,7 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
       });
     }
 
-    await db.exec("begin");
-    try {
+    await db.transaction(async () => {
       await db.run(
         [
           "update tickets",
@@ -257,11 +250,7 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
           nowIso,
         ],
       );
-      await db.exec("commit");
-    } catch (error) {
-      await db.exec("rollback");
-      throw error;
-    }
+    });
     logMutationRecord({
       requestIdValue,
       route: `/tickets/${ticketId}/status`,
@@ -315,8 +304,7 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
       });
     }
 
-    await db.exec("begin");
-    try {
+    await db.transaction(async () => {
       await db.run(
         [
           "update tickets",
@@ -349,11 +337,7 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
         ].join(" "),
         [ticketId, session.accountId, cancelReason, nowIso],
       );
-      await db.exec("commit");
-    } catch (error) {
-      await db.exec("rollback");
-      throw error;
-    }
+    });
 
     logMutationRecord({
       requestIdValue,

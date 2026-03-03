@@ -15,6 +15,9 @@
     "test:unit": "node --test tests/backend/unit/*.test.mjs",
     "test:integration": "node --test tests/backend/integration/*.test.mjs",
     "test:e2e": "node tests/frontend/e2e/setup/backend_seed.mjs && playwright test",
+    "cf:e2e:prepare": "wrangler d1 migrations apply helpdesk-db --local --persist-to .tmp/wrangler-e2e && wrangler d1 execute helpdesk-db --local --persist-to .tmp/wrangler-e2e --file tests/frontend/e2e/setup/d1_seed.sql",
+    "dev:cf:e2e": "wrangler dev --local --port 8788 --persist-to .tmp/wrangler-e2e --var APP_ENV:local --inspector-port 0 --show-interactive-dev-session false",
+    "test:e2e:cf-local": "npm run cf:e2e:prepare && playwright test -c playwright.cloudflare.config.mjs",
     "dev:cf": "wrangler dev --local --port 8787 --inspector-port 0 --show-interactive-dev-session false",
     "deploy": "wrangler deploy",
     "d1:migrate": "wrangler d1 migrations apply helpdesk-db"
