@@ -47,6 +47,9 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
     }
     const activeTicketCount = await countResidentActiveTickets(db, session.accountId);
     const tickets = await listResidentTickets(db, session.accountId);
+    const createTicketInlineAction = activeTicketCount < 5
+      ? '<div class="section-header-actions"><form method="get" action="/tickets/new" class="inline-action-form"><button type="submit" class="button-compact">Create Ticket</button></form></div>'
+      : "";
     return html(
       pageWithLogout({
         title: residentProfile.flat_number,
@@ -56,19 +59,13 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
         detailsHtml: [
           '<section class="section">',
           '<div class="section-header"><h2>' +
-            (activeTicketCount === 0 ? "No Active Ticket(s)" : `${activeTicketCount} Active Ticket(s)`) +
-            "</h2></div>",
+            (activeTicketCount === 0
+              ? '<span class="active-count-number">No</span> <span class="active-count-label">Active Ticket(s)</span>'
+              : `<span class="active-count-number">${activeTicketCount}</span> <span class="active-count-label">Active Ticket(s)</span>`) +
+            `</h2>${createTicketInlineAction}</div>`,
           residentTicketListHtml(tickets),
           "</section>",
         ].join(""),
-        primaryAction: activeTicketCount < 5
-          ? {
-            method: "get",
-            href: "/tickets/new",
-            label: "Create Ticket",
-          }
-          : null,
-        primaryActionSticky: true,
         links: [
           { href: "/resident/staff-ratings", label: "Staff Ratings" },
           { href: "/resident/account", label: "Profile", className: "nav-link-right" },
