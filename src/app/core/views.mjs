@@ -15,6 +15,40 @@ function statusChip(status) {
   return `<span class="status-chip status-chip--${htmlEscape(status)}">${htmlEscape(statusLabel(status))}</span>`;
 }
 
+function relativeUpdatedLabel(isoValue, nowMillis = Date.now()) {
+  const updatedMs = Date.parse(isoValue);
+  if (!Number.isFinite(updatedMs)) {
+    return "Updated recently";
+  }
+  const deltaMs = Math.max(0, nowMillis - updatedMs);
+  const minutes = Math.floor(deltaMs / 60000);
+  if (minutes < 1) {
+    return "Updated just now";
+  }
+  if (minutes < 60) {
+    return `Updated ${minutes}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `Updated ${hours}h ago`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days < 30) {
+    return `Updated ${days}d ago`;
+  }
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `Updated ${months}mo ago`;
+  }
+  const years = Math.floor(months / 12);
+  return `Updated ${years}y ago`;
+}
+
+function metaChip(text, variant = "") {
+  const classSuffix = variant ? ` ticket-meta-chip--${variant}` : "";
+  return `<span class="ticket-meta-chip${classSuffix}">${htmlEscape(text)}</span>`;
+}
+
 function kvGrid(rows) {
   return [
     '<div class="resident-meta kv-grid">',
@@ -34,14 +68,21 @@ function residentTicketListHtml(tickets) {
     tickets
       .map((ticket) => {
         const assignedLabel = ticket.assigned_staff_name || "Unassigned";
+        const updatedLabel = relativeUpdatedLabel(ticket.updated_at);
         return [
-          '<li class="ticket-item">',
+          `<li class="ticket-item ticket-item--${htmlEscape(ticket.status)}">`,
+          `<a class="ticket-item-link" href="/tickets/${ticket.id}">`,
           '<div class="ticket-row-head">',
-          `<h3><a class="ticket-number-link" href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
+          `<h3><span class="ticket-number-link">${htmlEscape(ticket.ticket_number)}</span></h3>`,
           statusChip(ticket.status),
           "</div>",
           `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
-          `<p class="ticket-row-meta">Issue: ${htmlEscape(issueTypeLabel(ticket.issue_type))} | Assigned: ${htmlEscape(assignedLabel)} | Updated: ${htmlEscape(ticket.updated_at)}</p>`,
+          '<p class="ticket-row-meta-chips">',
+          metaChip(issueTypeLabel(ticket.issue_type), "issue"),
+          metaChip(assignedLabel, "assignee"),
+          metaChip(updatedLabel, "updated"),
+          "</p>",
+          "</a>",
           "</li>",
         ].join("");
       })
@@ -60,16 +101,24 @@ function adminTicketListHtml(tickets, nowMillis = Date.now()) {
       .map((ticket) => {
         const assignedLabel = ticket.assigned_staff_name || "Unassigned";
         const agingBadge = ticketAgingBadge(ticket, nowMillis);
-        const agingHtml = agingBadge ? `<span class="badge">${htmlEscape(agingBadge)}</span>` : "";
+        const updatedLabel = relativeUpdatedLabel(ticket.updated_at, nowMillis);
         return [
-          '<li class="ticket-item">',
+          `<li class="ticket-item ticket-item--${htmlEscape(ticket.status)}">`,
+          `<a class="ticket-item-link" href="/tickets/${ticket.id}">`,
           '<div class="ticket-row-head">',
-          `<h3><a class="ticket-number-link" href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
+          `<h3><span class="ticket-number-link">${htmlEscape(ticket.ticket_number)}</span></h3>`,
           statusChip(ticket.status),
           "</div>",
           `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
-          `<p class="ticket-row-meta">Flat: ${htmlEscape(ticket.resident_flat_number)} | Resident: ${htmlEscape(ticket.resident_name)} | Issue: ${htmlEscape(issueTypeLabel(ticket.issue_type))}</p>`,
-          `<p class="ticket-row-meta">Assigned: ${htmlEscape(assignedLabel)} | Created: ${htmlEscape(ticket.created_at)} | Updated: ${htmlEscape(ticket.updated_at)}${agingHtml ? ` | ${agingHtml}` : ""}</p>`,
+          '<p class="ticket-row-meta-chips">',
+          metaChip(`Flat ${ticket.resident_flat_number}`, "flat"),
+          metaChip(ticket.resident_name, "resident"),
+          metaChip(issueTypeLabel(ticket.issue_type), "issue"),
+          metaChip(assignedLabel, "assignee"),
+          metaChip(updatedLabel, "updated"),
+          agingBadge ? metaChip(agingBadge, "aging") : "",
+          "</p>",
+          "</a>",
           "</li>",
         ].join("");
       })
@@ -86,16 +135,26 @@ function staffTicketListHtml(tickets) {
     '<ul class="ticket-list">',
     tickets
       .map((ticket) =>
-        [
-          '<li class="ticket-item">',
+        (() => {
+          const updatedLabel = relativeUpdatedLabel(ticket.updated_at);
+          return [
+          `<li class="ticket-item ticket-item--${htmlEscape(ticket.status)}">`,
+          `<a class="ticket-item-link" href="/tickets/${ticket.id}">`,
           '<div class="ticket-row-head">',
-          `<h3><a class="ticket-number-link" href="/tickets/${ticket.id}">${htmlEscape(ticket.ticket_number)}</a></h3>`,
+          `<h3><span class="ticket-number-link">${htmlEscape(ticket.ticket_number)}</span></h3>`,
           statusChip(ticket.status),
           "</div>",
           `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
-          `<p class="ticket-row-meta">Apartment: ${htmlEscape(ticket.apartment_name)} | Flat: ${htmlEscape(ticket.resident_flat_number)} | Issue: ${htmlEscape(issueTypeLabel(ticket.issue_type))} | Updated: ${htmlEscape(ticket.updated_at)}</p>`,
+          '<p class="ticket-row-meta-chips">',
+          metaChip(ticket.apartment_name, "apartment"),
+          metaChip(`Flat ${ticket.resident_flat_number}`, "flat"),
+          metaChip(issueTypeLabel(ticket.issue_type), "issue"),
+          metaChip(updatedLabel, "updated"),
+          "</p>",
+          "</a>",
           "</li>",
-        ].join(""),
+          ].join("");
+        })(),
       )
       .join(""),
     "</ul>",

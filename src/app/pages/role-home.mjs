@@ -56,7 +56,7 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
         detailsHtml: [
           '<section class="section">',
           '<div class="section-header"><h2>' +
-            (activeTicketCount === 0 ? "No Active Tickets" : `${activeTicketCount} Active Tickets`) +
+            (activeTicketCount === 0 ? "No Active Ticket(s)" : `${activeTicketCount} Active Ticket(s)`) +
             "</h2></div>",
           residentTicketListHtml(tickets),
           "</section>",
