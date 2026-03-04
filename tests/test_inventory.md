@@ -14,7 +14,7 @@
 5. `validateReviewInput accepts empty and rating+text combinations`
 6. `validateReviewInput rejects text without rating and invalid rating`
 
-## Backend Integration Tests (40)
+## Backend Integration Tests (41)
 
 ### `tests/backend/integration/m1_auth_sessions.test.mjs` (7)
 1. `milestone 1 migration creates auth/session baseline tables`
@@ -38,7 +38,7 @@
 10. `resident ticket mutations enforce CSRF tokens`
 
 ### `tests/backend/integration/m3_admin_assignment_queue.test.mjs` (9)
-1. `milestone 3+ migration adds staff links and ticket reviews tables`
+1. `milestone 4+ migration adds staff apartment links and schema advances`
 2. `admin can assign linked and matching staff to an open ticket`
 3. `admin can reassign ticket while status is assigned`
 4. `admin can reassign ticket while status is in_progress`
@@ -60,11 +60,12 @@
 9. `resident review is blocked until ticket is completed`
 10. `submitted review appears on admin and assigned staff ticket detail`
 
-### `tests/backend/integration/m5_ratings_observability_regression.test.mjs` (4)
-1. `full workflow: resident create, admin assign, staff comment+complete, resident review, rating visible`
-2. `resident and admin ratings pages show scoped data`
-3. `GET /500 renders role-aware home link and retry option`
-4. `request and mutation logging emit structured records`
+### `tests/backend/integration/m5_ratings_observability_regression.test.mjs` (5)
+1. `milestone 5 migration adds ticket reviews table and schema advances`
+2. `full workflow: resident create, admin assign, staff comment+complete, resident review, rating visible`
+3. `resident ratings summary/detail and admin ratings pages show scoped data`
+4. `GET /500 renders role-aware home link and retry option`
+5. `request and mutation logging emit structured records`
 
 ## Frontend E2E Specs (4)
 
@@ -85,6 +86,6 @@
 
 ## Totals
 
-1. Backend unit + integration declarations: `48`
+1. Backend unit + integration declarations: `49`
 2. Frontend e2e declarations: `4`
-3. All declarations combined: `52`
+3. All declarations combined: `53`

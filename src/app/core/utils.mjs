@@ -121,11 +121,15 @@ function doc(title, body) {
     "  align-items: center;",
     "}",
     ".top-nav a { font-size: 0.8125rem; }",
-    ".top-nav a.nav-link-right { margin-left: auto; }",
+    ".top-nav a.nav-home-pill { display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; color: #334155; text-decoration: none; font-weight: 600; }",
+    ".top-nav a.nav-home-pill:hover { background: #f1f5f9; border-color: #94a3b8; }",
+    ".top-nav .nav-link-right { margin-left: auto; }",
+    ".top-nav .nav-meta { color: var(--text-muted); font-size: 0.75rem; }",
     ".page-header { margin-bottom: 14px; }",
     ".resident-home-header { text-align: center; }",
     ".resident-home-header h1 { font-family: var(--font-ui); font-size: 2.25rem; line-height: 1.06; letter-spacing: 0.02em; }",
     ".resident-home-header .page-subtitle { font-size: 0.8125rem; letter-spacing: 0.01em; }",
+    ".resident-home-header .profile-flat-subtitle { font-size: clamp(1.35rem, 6vw, 1.95rem); font-weight: 700; letter-spacing: 0.01em; color: var(--text-primary); margin-top: 8px; }",
     ".home-header { text-align: center; margin-bottom: 18px; }",
     '.home-header h1 { font-family: "Open Sans", "Helvetica Neue", "Arial", sans-serif; font-size: clamp(2.75rem, 12vw, 4.25rem); line-height: 1.02; letter-spacing: 0.05em; font-weight: 800; }',
     ".home-header .home-subtitle { max-width: 34ch; margin-left: auto; margin-right: auto; text-align: center; }",
@@ -140,6 +144,16 @@ function doc(title, body) {
     ".button-compact { min-height: 32px; padding: 5px 10px; border-radius: 999px; font-size: 0.75rem; line-height: 1.1; font-weight: 700; }",
     ".section-note { margin: 4px 0 0; color: var(--text-muted); font-size: 0.8125rem; }",
     "label { display: block; margin: 10px 0 5px; font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.01em; }",
+    ".issue-toggle-help { margin: -2px 0 8px; }",
+    ".issue-toggle { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 4px; }",
+    ".issue-toggle-option { position: relative; margin: 0; }",
+    ".issue-toggle-option input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }",
+    ".issue-toggle-option > span { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; color: #334155; font-size: 0.875rem; font-weight: 600; padding: 0 14px; transition: background-color .12s ease, border-color .12s ease, color .12s ease; }",
+    ".issue-toggle-option .issue-toggle-selected { display: none; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.01em; }",
+    ".issue-toggle-option input:hover + span { background: #f1f5f9; border-color: #94a3b8; }",
+    ".issue-toggle-option input:checked + span { border-color: var(--accent); background: var(--accent); color: #ffffff; }",
+    ".issue-toggle-option input:checked + span .issue-toggle-selected { display: inline; }",
+    ".issue-toggle-option input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }",
     'input[type="text"], input[type="password"], select, textarea {',
     "  width: 100%;",
     "  min-height: 44px;",
@@ -161,6 +175,7 @@ function doc(title, body) {
     "  font: inherit;",
     "  font-weight: 600;",
     "  padding: 10px 12px;",
+    "  cursor: pointer;",
     "}",
     "button:disabled { opacity: 0.6; cursor: not-allowed; }",
     ".wide-button { width: 100%; margin-top: 12px; }",
@@ -169,6 +184,13 @@ function doc(title, body) {
     ".action-form { margin: 12px 0 0; }",
     ".action-form.sticky-cta { position: sticky; bottom: 10px; background: var(--bg-surface); padding-top: 8px; }",
     ".inline-form { margin: 0; }",
+    ".form-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }",
+    ".button-link { min-height: 44px; border: 1px solid var(--border-subtle); border-radius: 8px; background: #f8fafc; color: #334155; font: inherit; font-weight: 600; padding: 10px 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }",
+    ".button-link-full { width: 100%; }",
+    ".button-link:hover { background: #f1f5f9; border-color: #94a3b8; }",
+    ".button-link-disabled { opacity: 0.55; pointer-events: none; }",
+    ".button-cancel { color: #334155; }",
+    ".button-create { min-height: 44px; border: 1px solid var(--accent); border-radius: 8px; background: var(--accent); color: #ffffff; font: inherit; font-weight: 700; padding: 10px 12px; }",
     ".password-row { position: relative; }",
     ".password-row input { padding-right: 80px; }",
     ".password-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); min-height: 32px; padding: 4px 8px; border-radius: 6px; background: transparent; color: var(--accent); border: 1px solid var(--border-subtle); font-size: 0.75rem; font-weight: 700; }",
@@ -214,6 +236,17 @@ function doc(title, body) {
     ".ticket-meta-chip--updated { background: #ecfeff; border-color: #bae6fd; color: #155e75; }",
     ".ticket-meta-chip--aging { background: #fef9c3; border-color: #facc15; color: #854d0e; }",
     ".meta-row { margin: 4px 0; font-size: 0.875rem; }",
+    ".staff-summary-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }",
+    ".staff-summary-left { min-width: 0; }",
+    ".staff-summary-name { margin: 0; font-size: 1rem; line-height: 1.2; }",
+    ".staff-summary-type { margin: 4px 0 0; color: var(--text-muted); font-size: 0.8125rem; }",
+    ".staff-summary-right { text-align: right; flex-shrink: 0; }",
+    ".staff-summary-average { margin: 0; font-size: 1.2rem; line-height: 1.1; font-weight: 800; color: var(--text-primary); }",
+    ".staff-summary-star { color: #f59e0b; }",
+    ".staff-summary-count { margin: 4px 0 0; color: var(--text-muted); font-size: 0.75rem; }",
+    ".pagination-row { margin-top: 10px; }",
+    ".pagination-row .small { margin: 0 0 8px; }",
+    ".pagination-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }",
     ".timeline { border-left: 2px solid var(--border-subtle); padding-left: 12px; }",
     ".timeline-item { position: relative; margin-left: 0; }",
     ".timeline-item::before { content: ''; position: absolute; left: -19px; top: 12px; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); }",
@@ -403,8 +436,13 @@ function loginPage({ reason = "", authError = "" }) {
 
 function navWithLogout({ csrfToken, links }) {
   const navLinks = links
-    .map((entry) =>
-      `<a href="${entry.href}"${entry.className ? ` class="${htmlEscape(entry.className)}"` : ""}>${entry.label}</a>`)
+    .map((entry) => {
+      const classAttr = entry.className ? ` class="${htmlEscape(entry.className)}"` : "";
+      if (entry.href) {
+        return `<a href="${entry.href}"${classAttr}>${htmlEscape(entry.label)}</a>`;
+      }
+      return `<span${classAttr}>${htmlEscape(entry.label)}</span>`;
+    })
     .join("");
   return [
     '<nav class="top-nav">',
@@ -418,7 +456,6 @@ function logoutPanel({ csrfToken }) {
   return [
     '<section class="section resident-meta session-panel">',
     "<h2>Session</h2>",
-    '<p class="small">Logout is intentionally placed here to keep task screens focused.</p>',
     '<form method="post" action="/logout">',
     `<input type="hidden" name="csrf_token" value="${htmlEscape(csrfToken)}">`,
     '<button type="submit" class="wide-button button-danger">Logout</button>',

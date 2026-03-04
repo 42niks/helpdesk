@@ -15,7 +15,7 @@ import {
   nowIso,
 } from "./helpers/m3plus_helpers.mjs";
 
-test("milestone 3+ migration adds staff links and ticket reviews tables", () => {
+test("milestone 4+ migration adds staff apartment links and schema advances", () => {
   const { sqlitePath, cleanup } = createFixtureDb();
   const db = new DatabaseSync(sqlitePath);
 
@@ -27,10 +27,9 @@ test("milestone 3+ migration adds staff links and ticket reviews tables", () => 
   const tableNames = rows.map((row) => row.name);
 
   assert.ok(tableNames.includes("staff_apartment_links"));
-  assert.ok(tableNames.includes("ticket_reviews"));
 
   const schemaVersion = db.prepare("select value from meta where key = 'schema_version'").get().value;
-  assert.equal(schemaVersion, "4");
+  assert.ok(Number(schemaVersion) >= 4);
 
   db.close();
   cleanup();

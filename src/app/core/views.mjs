@@ -170,6 +170,7 @@ function createTicketPage({
   formError = "",
 }) {
   const issueType = values.issue_type || "";
+  const selectedIssueType = issueType === "plumbing" ? "plumbing" : "electrical";
   const title = values.title || "";
   const description = values.description || "";
   const canCreate = activeTicketCount < 5;
@@ -191,34 +192,35 @@ function createTicketPage({
     : '<div class="message error">This flat already has 5 active tickets. Complete existing tickets before creating a new one.</div>';
 
   return doc(
-    "Resident Create Ticket",
+    "Create Ticket",
     [
       navWithLogout({
         csrfToken: session.csrfToken,
         links: [
-          { href: "/resident", label: "<- Resident Home (All Tickets)" },
-          { href: "/resident/account", label: "Profile" },
+          { href: "/resident", label: "← Home", className: "nav-home-pill" },
+          { label: `Active Tickets: ${activeTicketCount}/5`, className: "nav-link-right nav-meta" },
         ],
       }),
-      '<header class="page-header">',
-      "<h1>Resident Create Ticket</h1>",
+      '<header class="page-header resident-home-header">',
+      "<h1>Create Ticket</h1>",
       '<p class="page-subtitle">Create a maintenance request with clear details.</p>',
       "</header>",
-      kvGrid([
-        ["Apartment:", residentProfile.apartment_name],
-        ["Flat:", residentProfile.flat_number],
-        ["Active Tickets:", `${activeTicketCount}/5`],
-      ]),
       formErrorHtml,
       capHtml,
       '<form method="post" action="/tickets" novalidate>',
       `<input type="hidden" name="csrf_token" value="${htmlEscape(session.csrfToken)}">`,
-      '<label for="issue_type">Issue Type</label>',
-      '<select id="issue_type" name="issue_type" required>',
-      "<option value=\"\">Select issue type</option>",
-      `<option value="electrical"${issueType === "electrical" ? " selected" : ""}>Electrical</option>`,
-      `<option value="plumbing"${issueType === "plumbing" ? " selected" : ""}>Plumbing</option>`,
-      "</select>",
+      '<label id="issue_type_label">Issue Type</label>',
+      '<p class="small issue-toggle-help">Choose one (required)</p>',
+      '<div class="issue-toggle" role="radiogroup" aria-labelledby="issue_type_label">',
+      '<label class="issue-toggle-option">',
+      `<input type="radio" name="issue_type" value="electrical"${selectedIssueType === "electrical" ? " checked" : ""}>`,
+      '<span><span class="issue-toggle-text">Electrical</span><span class="issue-toggle-selected">✓ Selected</span></span>',
+      "</label>",
+      '<label class="issue-toggle-option">',
+      `<input type="radio" name="issue_type" value="plumbing"${selectedIssueType === "plumbing" ? " checked" : ""}>`,
+      '<span><span class="issue-toggle-text">Plumbing</span><span class="issue-toggle-selected">✓ Selected</span></span>',
+      "</label>",
+      "</div>",
       issueTypeError,
       '<label for="title">Title</label>',
       `<input id="title" name="title" type="text" value="${htmlEscape(title)}" required>`,
@@ -226,9 +228,11 @@ function createTicketPage({
       '<label for="description">Description</label>',
       `<textarea id="description" name="description" required>${htmlEscape(description)}</textarea>`,
       descriptionError,
-      `<button type="submit" class="wide-button"${canCreate ? "" : " disabled"}>Create Ticket</button>`,
+      '<div class="form-actions">',
+      '<a href="/resident" class="button-link button-cancel">Cancel</a>',
+      `<button type="submit" class="button-create"${canCreate ? "" : " disabled"}>Create</button>`,
+      "</div>",
       "</form>",
-      '<p class="small"><a href="/resident">Cancel and return to Resident Home (All Tickets)</a></p>',
     ].join(""),
   );
 }
@@ -461,7 +465,7 @@ function residentPlaceholderPage({
           links: [
             backLink,
             secondaryLink,
-          ],
+          ].filter(Boolean),
         }),
         '<header class="page-header">',
         `<h1>${htmlEscape(title)}</h1>`,

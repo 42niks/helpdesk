@@ -15,6 +15,25 @@ import {
   nowIso,
 } from "./helpers/m3plus_helpers.mjs";
 
+test("milestone 5 migration adds ticket reviews table and schema advances", () => {
+  const { sqlitePath, cleanup } = createFixtureDb();
+  const db = new DatabaseSync(sqlitePath);
+
+  const rows = db
+    .prepare(
+      "select name from sqlite_master where type = 'table' and name not like 'sqlite_%' order by name",
+    )
+    .all();
+  const tableNames = rows.map((row) => row.name);
+  assert.ok(tableNames.includes("ticket_reviews"));
+
+  const schemaVersion = db.prepare("select value from meta where key = 'schema_version'").get().value;
+  assert.ok(Number(schemaVersion) >= 5);
+
+  db.close();
+  cleanup();
+});
+
 test("full workflow: resident create, admin assign, staff comment+complete, resident review, rating visible", async () => {
   const fixtureDb = createFixtureDb();
   const fixture = createFixtureApp(fixtureDb.sqlitePath);
@@ -117,9 +136,20 @@ test("full workflow: resident create, admin assign, staff comment+complete, resi
   assert.equal(ratingsPage.status, 200);
   const ratingsHtml = await ratingsPage.text();
   assert.match(ratingsHtml, /Electric Staff One/);
-  assert.match(ratingsHtml, /Ratings:<\/strong>\s*1/);
-  assert.match(ratingsHtml, /Average Rating:<\/strong>\s*5\.00/);
-  assert.match(ratingsHtml, /Quick resolution and polite communication\./);
+  assert.match(ratingsHtml, /1 ratings/);
+  assert.match(ratingsHtml, /5\.00/);
+  assert.match(ratingsHtml, new RegExp(`href="/resident/staff-ratings/${fixtureDb.staffElectric1AccountId}"`));
+  assert.doesNotMatch(ratingsHtml, /Quick resolution and polite communication\./);
+
+  const reviewsDetailPage = await fixture.app.fetch(
+    new Request(`http://helpdesk.local/resident/staff-ratings/${fixtureDb.staffElectric1AccountId}`, {
+      headers: { cookie: resident.cookiePair },
+    }),
+  );
+  assert.equal(reviewsDetailPage.status, 200);
+  const reviewsDetailHtml = await reviewsDetailPage.text();
+  assert.match(reviewsDetailHtml, /Text Reviews/);
+  assert.match(reviewsDetailHtml, /Quick resolution and polite communication\./);
 
   const db = new DatabaseSync(fixtureDb.sqlitePath);
   const staffCommentRow = db
@@ -133,7 +163,7 @@ test("full workflow: resident create, admin assign, staff comment+complete, resi
   fixtureDb.cleanup();
 });
 
-test("resident and admin ratings pages show scoped data", async () => {
+test("resident ratings summary/detail and admin ratings pages show scoped data", async () => {
   const fixtureDb = createFixtureDb();
 
   const palmTicketId = insertTicket({
@@ -198,9 +228,20 @@ test("resident and admin ratings pages show scoped data", async () => {
   assert.equal(residentRatings.status, 200);
   const residentRatingsHtml = await residentRatings.text();
   assert.match(residentRatingsHtml, /Electric Staff One/);
-  assert.match(residentRatingsHtml, /Excellent work in PM\./);
   assert.doesNotMatch(residentRatingsHtml, /Electric Staff Two/);
   assert.doesNotMatch(residentRatingsHtml, /Great work in LV\./);
+  assert.doesNotMatch(residentRatingsHtml, /Excellent work in PM\./);
+
+  const residentStaffDetail = await fixture.app.fetch(
+    new Request(`http://helpdesk.local/resident/staff-ratings/${fixtureDb.staffElectric1AccountId}`, {
+      headers: { cookie: residentPalm.cookiePair },
+    }),
+  );
+  assert.equal(residentStaffDetail.status, 200);
+  const residentStaffDetailHtml = await residentStaffDetail.text();
+  assert.match(residentStaffDetailHtml, /Excellent work in PM\./);
+  assert.doesNotMatch(residentStaffDetailHtml, /Needs improvement in LV\./);
+  assert.doesNotMatch(residentStaffDetailHtml, /Great work in LV\./);
 
   const adminPalm = await loginAndSession(fixture.app, "admin_pm", "/admin");
   const adminApartmentRatings = await fixture.app.fetch(

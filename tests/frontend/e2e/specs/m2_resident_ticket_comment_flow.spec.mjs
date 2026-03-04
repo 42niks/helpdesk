@@ -15,10 +15,10 @@ test("resident can create a ticket and add a comment from ticket detail", async 
   await page.getByRole("button", { name: "Create Ticket" }).click();
 
   await expect(page).toHaveURL(/\/tickets\/new\??$/);
-  await page.getByLabel("Issue Type").selectOption("electrical");
+  await page.getByRole("radio", { name: "Electrical" }).check();
   await page.getByLabel("Title").fill(ticketTitle);
   await page.getByLabel("Description").fill(ticketDescription);
-  await page.getByRole("button", { name: "Create Ticket" }).click();
+  await page.getByRole("button", { name: "Create" }).click();
 
   await expect(page).toHaveURL(/\/tickets\/\d+$/);
   const ticketPath = new URL(page.url()).pathname;
@@ -31,11 +31,11 @@ test("resident can create a ticket and add a comment from ticket detail", async 
   await expect(page).toHaveURL(/\/tickets\/\d+$/);
   await expect(page.getByText("Please visit after 6 PM.")).toBeVisible();
 
-  await page.getByRole("link", { name: /Resident Home \(All Tickets\)/ }).click();
+  await page.getByRole("link", { name: /Home/ }).click();
   await expect(page).toHaveURL(/\/resident$/);
   await expect(page.locator(".ticket-item").filter({ hasText: ticketTitle }).first()).toBeVisible();
 
-  await page.getByRole("link", { name: "Profile" }).click();
+  await page.getByRole("link", { name: /Profile/ }).click();
   await expect(page).toHaveURL(/\/resident\/account$/);
   await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\?reason=logged_out$/);

@@ -13,7 +13,7 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
     }).first();
     await expect(staffCard).toBeVisible();
     const cardText = (await staffCard.textContent()) || "";
-    const match = cardText.match(/Ratings:\s*(\d+)/i);
+    const match = cardText.match(/(\d+)\s+ratings/i);
     if (!match) {
       throw new Error("Could not extract staff rating count from resident ratings page.");
     }
@@ -31,14 +31,14 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await page.goto("/resident");
 
   await page.getByRole("button", { name: "Create Ticket" }).click();
-  await page.getByLabel("Issue Type").selectOption("electrical");
+  await page.getByRole("radio", { name: "Electrical" }).check();
   await page.getByLabel("Title").fill(ticketTitle);
   await page.getByLabel("Description").fill(ticketDescription);
-  await page.getByRole("button", { name: "Create Ticket" }).click();
+  await page.getByRole("button", { name: "Create" }).click();
   await expect(page).toHaveURL(/\/tickets\/\d+$/);
   const ticketPath = new URL(page.url()).pathname;
 
-  await page.getByRole("link", { name: "Profile" }).click();
+  await page.getByRole("link", { name: /Profile/ }).click();
   await expect(page).toHaveURL(/\/resident\/account$/);
   await page.getByRole("button", { name: "Logout" }).click();
   await expect(page).toHaveURL(/\?reason=logged_out$/);
@@ -102,7 +102,9 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
   await page.goto("/resident/staff-ratings");
   await expect(page).toHaveURL(/\/resident\/staff-ratings$/);
   await expect(page.getByRole("heading", { name: "Electric Staff" })).toBeVisible();
-  await expect(page.getByText(reviewText)).toBeVisible();
   const ratingCountAfter = await staffRatingCount();
   await expect(ratingCountAfter).toBe(ratingCountBefore + 1);
+  await page.getByRole("link", { name: "View Reviews" }).first().click();
+  await expect(page).toHaveURL(/\/resident\/staff-ratings\/\d+$/);
+  await expect(page.getByText(reviewText)).toBeVisible();
 });

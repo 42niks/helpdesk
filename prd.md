@@ -190,6 +190,7 @@ The product should preserve the simplicity of the notebook model while removing 
 | R-3 | Ticket Detail (Resident View) | `/tickets/:id` | Resident |
 | R-4 | Resident Review Block (inline in Ticket Detail) | `N/A (rendered in /tickets/:id)` | Resident |
 | R-5 | Resident Staff Ratings | `/resident/staff-ratings` | Resident |
+| R-5B | Resident Staff Review Detail | `/resident/staff-ratings/:staffId` | Resident |
 | R-6 | Resident Account | `/resident/account` | Resident |
 | A-1 | Admin Home | `/admin` | Admin |
 | A-2 | Admin Queue Panel (inside Home) | `N/A (rendered in /admin)` | Admin |
@@ -209,7 +210,7 @@ The product should preserve the simplicity of the notebook model while removing 
 1. Every page in this PRD must include visible navigation links.
 2. Navigation text must explicitly name the destination page.
 3. Generic labels like `Back`, `Go Back`, or `Previous` are not allowed.
-4. Left-arrow labels should still name destination clearly, for example: `<- Resident Home (All Tickets)`.
+4. Compact left-arrow labels are allowed when destination is explicit (for example: `← Home`, `← Ratings`).
 5. Navigation links must be present at top of page; optional footer duplication is allowed.
 
 ### 7.1.2 Required Navigation Links by Screen
@@ -218,12 +219,13 @@ The product should preserve the simplicity of the notebook model while removing 
 |---|---|
 | P-1 | `Go to Apartment Helpdesk Home` (`/`) |
 | P-2 | `Go to Apartment Helpdesk Home + Login` (`/`) |
-| R-1 | `Create Ticket` (`/tickets/new`), `Resident Staff Ratings` (`/resident/staff-ratings`), `Resident Account` (`/resident/account`) |
-| R-2 | `<- Resident Home (All Tickets)` (`/resident`), `Resident Account` (`/resident/account`) |
+| R-1 | Primary action `Create Ticket` (`/tickets/new`), `⭐ Ratings` (`/resident/staff-ratings`), `👤 Profile` (`/resident/account`) |
+| R-2 | `← Home` (`/resident`) |
 | R-3 | `<- Resident Home (All Tickets)` (`/resident`) when viewed by resident; `<- Admin Home (All Tickets)` (`/admin`) when viewed by admin; `<- Staff Home (Assigned Tickets)` (`/staff`) when viewed by staff |
 | R-4 | Same as `R-3` because this review block is inline inside `/tickets/:id` |
-| R-5 | `<- Resident Home (All Tickets)` (`/resident`), `Resident Account` (`/resident/account`) |
-| R-6 | `<- Resident Home (All Tickets)` (`/resident`), `Resident Staff Ratings` (`/resident/staff-ratings`) |
+| R-5 | `← Home` (`/resident`) |
+| R-5B | `← Ratings` (`/resident/staff-ratings`) |
+| R-6 | `← Home` (`/resident`) |
 | A-1 | `Apartment Staff Performance` (`/admin/staff`), `Admin Account` (`/admin/account`) |
 | A-2 | Same as `A-1` because queue panel is embedded in `/admin` |
 | A-3 | `<- Admin Home (All Tickets)` (`/admin`), `Apartment Staff Performance` (`/admin/staff`) |
@@ -344,12 +346,11 @@ Visible to:
 
 Resident sees:
 
-1. Apartment name (read-only).
-2. Flat number (read-only).
-3. Issue type selector with exactly two values: `electrical`, `plumbing`.
-4. Title input.
-5. Description textarea.
-6. Submit and cancel actions.
+1. Top navigation with `← Home` and active-ticket counter (`Active Tickets: X/5`).
+2. Issue type segmented toggle with exactly two values: `electrical`, `plumbing` (default: `electrical`).
+3. Title input.
+4. Description textarea.
+5. Side-by-side actions: `Cancel`, `Create`.
 
 Resident can do:
 
@@ -444,22 +445,18 @@ Resident sees:
    - Staff type
    - Apartment-specific average rating
    - Apartment-specific rating count
-3. Apartment-scoped review list per staff:
-   - Ticket number
-   - Rating value (if present)
-   - Review text
-   - Date
+3. `View Reviews` action for each staff card.
 
 Resident can do:
 
-1. View data only.
+1. Navigate to staff-specific review detail page.
 
 Resident cannot do:
 
 1. View staff from other apartments.
 2. View platform-wide staff summary.
 
-#### 7.3.6 R-6 Resident Account (`/resident/account`)
+#### 7.3.6 R-5B Resident Staff Review Detail (`/resident/staff-ratings/:staffId`)
 
 Visible to:
 
@@ -467,16 +464,35 @@ Visible to:
 
 Resident sees:
 
-1. Full name.
-2. Username.
-3. Apartment name.
-4. Flat number.
-5. Mobile number.
-6. Account status.
+1. Selected staff name and type.
+2. Apartment-scoped rating count and average for that staff.
+3. Text reviews only from residents in the same apartment for that staff.
+4. Reviews sorted newest first.
+5. Pagination at 10 reviews per page.
 
 Resident can do:
 
-1. View account details only (no profile edit in MVP).
+1. Navigate page-by-page with previous/next controls.
+
+Resident cannot do:
+
+1. See reviews from other apartments.
+
+#### 7.3.7 R-6 Resident Account (`/resident/account`)
+
+Visible to:
+
+1. Resident only.
+
+Resident sees:
+
+1. Apartment name as centered title.
+2. Flat number as prominent centered subtitle.
+3. Logout action panel.
+
+Resident can do:
+
+1. View account context and logout (no profile edit in MVP).
 
 ### 7.4 Admin Screens
 

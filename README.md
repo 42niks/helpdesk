@@ -44,7 +44,7 @@ Open [http://127.0.0.1:8787/](http://127.0.0.1:8787/).
 Quick health checks:
 
 - [http://127.0.0.1:8787/_health/](http://127.0.0.1:8787/_health/) -> `ok`
-- [http://127.0.0.1:8787/_db/](http://127.0.0.1:8787/_db/) -> `db ok (schema_version=4)`
+- [http://127.0.0.1:8787/_db/](http://127.0.0.1:8787/_db/) -> `db ok (schema_version=5)`
 
 Default local DB is `local-dev-db`.
 Optional separate DB for dev/test runs: `local-test-db`.
@@ -52,6 +52,12 @@ Optional separate DB for dev/test runs: `local-test-db`.
 ```bash
 npm run migrate:test-db
 npm run dev:test-db
+```
+
+UI demo seed (keeps existing resident/admin actors, resets ticket-domain data, renames/adds staff, and adds broad demo coverage):
+
+```bash
+node local/seed-ui-demo.mjs
 ```
 
 ## Testing
@@ -90,9 +96,10 @@ Implemented migrations:
 - `0001_init.sql`
 - `0002_milestone1_auth_baseline.sql`
 - `0003_milestone2_resident_tickets.sql`
-- `0004_milestone3_workflows_reviews.sql`
+- `0004_milestone4_staff_links.sql`
+- `0005_milestone5_ratings_reviews.sql`
 
-Current schema version: `4`.
+Current schema version: `5`.
 
 ## Cloudflare (Worker + D1)
 
@@ -121,5 +128,7 @@ npm run d1:remote:preflight
 npm run d1:remote:exec -- "select value from meta where key='schema_version';"
 npm run d1:remote:import -- /Users/nikhiltr/helpdesk/local/overwrite_remote_from_local_dev_db.sql
 ```
+
+`overwrite_remote_from_local_dev_db.sql` is generated from `local-dev-db`; it clears remote `sessions` but does not insert session rows.
 
 See [`local/REMOTE_D1_OPS.md`](/Users/nikhiltr/helpdesk/local/REMOTE_D1_OPS.md) for workflow details.

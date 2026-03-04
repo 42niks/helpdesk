@@ -67,8 +67,8 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
           "</section>",
         ].join(""),
         links: [
-          { href: "/resident/staff-ratings", label: "Staff Ratings" },
-          { href: "/resident/account", label: "Profile", className: "nav-link-right" },
+          { href: "/resident/staff-ratings", label: "⭐ Ratings", className: "nav-home-pill" },
+          { href: "/resident/account", label: "👤 Profile", className: "nav-link-right nav-home-pill" },
         ],
       }),
     );

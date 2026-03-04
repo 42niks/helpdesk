@@ -20,6 +20,7 @@ import {
 } from "./tickets/resident-handlers.mjs";
 import {
   handleResidentAccountPage,
+  handleResidentStaffRatingDetailPage,
   handleResidentStaffRatingsPage,
 } from "./pages/resident-pages.mjs";
 import {
@@ -71,6 +72,7 @@ export function createApp({ db, environment = "local" }) {
         const ticketAssignId = parseTicketId(url.pathname, /^\/tickets\/(\d+)\/assign$/);
         const ticketStatusId = parseTicketId(url.pathname, /^\/tickets\/(\d+)\/status$/);
         const ticketReviewId = parseTicketId(url.pathname, /^\/tickets\/(\d+)\/review$/);
+        const staffRatingsId = parseTicketId(url.pathname, /^\/resident\/staff-ratings\/(\d+)$/);
 
         if (url.pathname === "/_health/") {
           return finish(text("ok"));
@@ -169,6 +171,15 @@ export function createApp({ db, environment = "local" }) {
 
         if (request.method === "GET" && url.pathname === "/resident/staff-ratings") {
           return finish(await handleResidentStaffRatingsPage({ db, request, environment }));
+        }
+
+        if (request.method === "GET" && staffRatingsId) {
+          return finish(await handleResidentStaffRatingDetailPage({
+            db,
+            request,
+            environment,
+            staffAccountId: staffRatingsId,
+          }));
         }
 
         if (request.method === "GET" && url.pathname === "/admin") {

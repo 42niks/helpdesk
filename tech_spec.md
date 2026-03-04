@@ -344,7 +344,8 @@ Indexes:
 | GET | `/tickets/:id` | Ticket detail (shared route, resident view) |
 | POST | `/tickets/:id/comments` | Add comment |
 | POST | `/tickets/:id/review` | Submit review |
-| GET | `/resident/staff-ratings` | Apartment staff ratings/reviews |
+| GET | `/resident/staff-ratings` | Apartment staff rating summary |
+| GET | `/resident/staff-ratings/:staffId` | Apartment-scoped text reviews for one staff member |
 | GET | `/resident/account` | Resident account details |
 
 #### Admin Routes
@@ -558,7 +559,8 @@ Error response policy:
 3. Create ticket available only when flat active tickets <5.
 4. Ticket detail includes timeline, comments, assignee details when present.
 5. Review form shown only when ticket completed and no prior review.
-6. Resident staff ratings page shows only currently linked staff for resident apartment.
+6. Resident staff ratings summary page shows only currently linked staff for resident apartment.
+7. Resident staff review detail page is paginated (`10` per page), newest first, and apartment-scoped.
 
 ### 9.2 Admin Flows
 1. Login redirects to `/admin`.
@@ -603,12 +605,13 @@ Forbidden transitions:
 
 ### 10.2 Navigation Standards
 1. Every page must include explicit destination links at top.
-2. Generic `Back` labels are not allowed.
-3. Ticket detail back link text must be role-specific:
+2. Generic `Back` labels are not allowed; labels should still include destination context.
+3. Resident account/create/rating pages use compact destination pills (`← Home`, `← Ratings`) to preserve mobile space.
+4. Ticket detail back link text remains role-specific:
 - Resident: `<- Resident Home (All Tickets)`
 - Admin: `<- Admin Home (All Tickets)`
 - Staff: `<- Staff Home (Assigned Tickets)`
-4. Error pages must include role-aware home link and retry option for `500`.
+5. Error pages must include role-aware home link and retry option for `500`.
 
 ### 10.3 Progressive Enhancement Rules
 1. Core features must work without JS.
@@ -796,8 +799,8 @@ Common checks:
 1. Milestone 1: schema expansion + auth/session/CSRF baseline + login routing.
 2. Milestone 2: resident create/list/detail/comment flow.
 3. Milestone 3: admin queue + assign/reassign + cancellation-complete path.
-4. Milestone 4: staff queue + status transitions + review flow.
-5. Milestone 5: ratings pages + full regression/e2e matrix + release hardening.
+4. Milestone 4: staff queue + status transitions + staff-apartment linking.
+5. Milestone 5: resident review persistence + ratings pages (summary + staff detail) + full regression/e2e matrix + release hardening.
 
 ### 16.2 Dependencies
 1. Stable schema and migration tooling.

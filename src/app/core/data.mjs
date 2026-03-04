@@ -361,6 +361,37 @@ async function listApartmentReviewTexts(db, apartmentId, limit = 50) {
   );
 }
 
+async function listApartmentReviewTextsByStaff(db, apartmentId, staffAccountId, { limit = 10, offset = 0 } = {}) {
+  return db.all(
+    [
+      "select tr.ticket_id, tr.staff_account_id, st.full_name as staff_name, tr.rating, tr.review_text, tr.created_at, tk.ticket_number",
+      "from ticket_reviews tr",
+      "join tickets tk on tk.id = tr.ticket_id and tk.apartment_id = ?",
+      "join staff st on st.account_id = tr.staff_account_id",
+      "join staff_apartment_links sal on sal.staff_account_id = tr.staff_account_id and sal.apartment_id = ? and sal.is_active = 1",
+      "where tr.staff_account_id = ? and tr.review_text is not null and length(trim(tr.review_text)) > 0",
+      "order by tr.created_at desc, tr.id desc",
+      "limit ? offset ?",
+    ].join(" "),
+    [apartmentId, apartmentId, staffAccountId, limit, offset],
+  );
+}
+
+async function countApartmentReviewTextsByStaff(db, apartmentId, staffAccountId) {
+  const row = await db.get(
+    [
+      "select count(*) as total",
+      "from ticket_reviews tr",
+      "join tickets tk on tk.id = tr.ticket_id and tk.apartment_id = ?",
+      "join staff_apartment_links sal on sal.staff_account_id = tr.staff_account_id and sal.apartment_id = ? and sal.is_active = 1",
+      "where tr.staff_account_id = ? and tr.review_text is not null and length(trim(tr.review_text)) > 0",
+      "limit 1",
+    ].join(" "),
+    [apartmentId, apartmentId, staffAccountId],
+  );
+  return Number(row?.total || 0);
+}
+
 async function listPlatformStaffRatingsByAccountIds(db, staffAccountIds) {
   if (staffAccountIds.length === 0) {
     return [];
@@ -478,6 +509,8 @@ export {
   hasActiveStaffApartmentLink,
   listApartmentLinkedStaffRatings,
   listApartmentReviewTexts,
+  listApartmentReviewTextsByStaff,
+  countApartmentReviewTextsByStaff,
   listPlatformStaffRatingsByAccountIds,
   listTicketEvents,
   listTicketComments,

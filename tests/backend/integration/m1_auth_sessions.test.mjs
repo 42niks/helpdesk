@@ -255,7 +255,7 @@ test("protected route requires valid session and role", async () => {
   const residentHtml = await residentResponse.text();
   assert.match(residentHtml, /<h1>101<\/h1>/);
   assert.match(residentHtml, /Palm Meadows/);
-  assert.match(residentHtml, /<a href="\/resident\/account"[^>]*>Profile<\/a>/);
+  assert.match(residentHtml, /<a href="\/resident\/account"[^>]*>👤 Profile<\/a>/);
   assert.match(residentHtml, /<button type="submit" class="button-compact">Create Ticket<\/button>/);
   assert.doesNotMatch(residentHtml, /<a href="\/tickets\/new">Create Ticket<\/a>/);
 
