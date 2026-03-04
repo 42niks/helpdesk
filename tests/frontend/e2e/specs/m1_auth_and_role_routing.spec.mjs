@@ -9,9 +9,9 @@ test("resident can login from homepage and logout", async ({ page }) => {
   await page.getByRole("button", { name: "Login" }).click();
 
   await expect(page).toHaveURL(/\/resident$/);
-  await expect(page.getByRole("heading", { name: "Resident Home (All Tickets)" })).toBeVisible();
-  await expect(page.getByText("Apartment: Palm Meadows")).toBeVisible();
-  await expect(page.getByText("Flat: 101")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "101" })).toBeVisible();
+  await expect(page.getByText("Palm Meadows")).toBeVisible();
+  await expect(page.getByText(/Active Ticket\(s\)/)).toBeVisible();
   await expect(page.getByRole("link", { name: "Profile" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Create Ticket" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Create Ticket" })).toHaveCount(0);

@@ -113,3 +113,13 @@ Cloudflare local e2e prep (applies D1 migrations and seeds fixture data into loc
 ```bash
 npm run cf:e2e:prepare
 ```
+
+Remote D1 safe operations:
+
+```bash
+npm run d1:remote:preflight
+npm run d1:remote:exec -- "select value from meta where key='schema_version';"
+npm run d1:remote:import -- /Users/nikhiltr/helpdesk/local/overwrite_remote_from_local_dev_db.sql
+```
+
+See [`local/REMOTE_D1_OPS.md`](/Users/nikhiltr/helpdesk/local/REMOTE_D1_OPS.md) for workflow details.

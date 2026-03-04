@@ -492,8 +492,8 @@ test("admin home supports queue filters, pagination, and aging highlights", asyn
   assert.match(homeHtml, /name="status"/);
   assert.match(homeHtml, /name="issue_type"/);
   assert.match(homeHtml, /name="assigned_staff"/);
-  assert.match(homeHtml, /Created:/);
-  assert.match(homeHtml, /Updated:/);
+  assert.match(homeHtml, /ticket-meta-chip--updated/);
+  assert.match(homeHtml, /Updated [0-9]+[mhd] ago/);
 
   const filteredPage1 = await fixture.app.fetch(
     new Request("http://helpdesk.local/admin?status=open&issue_type=electrical&assigned_staff=unassigned&page_size=2&page=1", {
@@ -531,4 +531,3 @@ test("admin home supports queue filters, pagination, and aging highlights", asyn
   fixture.close();
   fixtureDb.cleanup();
 });
-

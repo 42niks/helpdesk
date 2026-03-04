@@ -253,11 +253,10 @@ test("protected route requires valid session and role", async () => {
   );
   assert.equal(residentResponse.status, 200);
   const residentHtml = await residentResponse.text();
-  assert.match(residentHtml, /Resident Home \(All Tickets\)/);
-  assert.match(residentHtml, /Apartment:<\/strong>\s*Palm Meadows/);
-  assert.match(residentHtml, /Flat:<\/strong>\s*101/);
-  assert.match(residentHtml, /<a href="\/resident\/account">Profile<\/a>/);
-  assert.match(residentHtml, /<button type="submit" class="wide-button">Create Ticket<\/button>/);
+  assert.match(residentHtml, /<h1>101<\/h1>/);
+  assert.match(residentHtml, /Palm Meadows/);
+  assert.match(residentHtml, /<a href="\/resident\/account"[^>]*>Profile<\/a>/);
+  assert.match(residentHtml, /<button type="submit" class="button-compact">Create Ticket<\/button>/);
   assert.doesNotMatch(residentHtml, /<a href="\/tickets\/new">Create Ticket<\/a>/);
 
   const forbiddenResponse = await fixture.app.fetch(

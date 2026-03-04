@@ -20,6 +20,7 @@
 - Keep demo seed scripts and local DB files out of git.
 
 ## Cloudflare/D1 Ops Notes
+- Before any remote D1 operation, read this lessons file first and run `npm run d1:remote:preflight`.
 - For remote DB changes, use `--remote` explicitly with Wrangler D1 commands.
 - Remote D1 import through Wrangler should avoid explicit SQL `BEGIN/COMMIT` in seed files.
 - Validate deployment with `/_health/` and `/_db/` checks after deploy.

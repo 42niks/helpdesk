@@ -241,7 +241,7 @@ test("resident home shows active ticket count and resident ticket list", async (
 
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Active Tickets:<\/strong>\s*1\/5/);
+  assert.match(html, /1<\/span>\s*<span class="active-count-label">Active Ticket\(s\)<\/span>/);
   assert.match(html, /PM-000001/);
   assert.match(html, new RegExp(`href="/tickets/${ticketId}"`));
 
