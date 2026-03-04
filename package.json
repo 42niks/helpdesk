@@ -2,7 +2,7 @@
   "name": "apartment-helpdesk",
   "private": true,
   "scripts": {
-    "dev": "node local/dev.mjs",
+    "dev": "node --watch local/dev.mjs",
     "migrate:local": "node local/migrate.mjs",
     "seed:local": "node local/seed-milestone1.mjs",
     "dev:test-db": "SQLITE_PATH=local-test-db node local/dev.mjs",

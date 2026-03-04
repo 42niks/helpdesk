@@ -121,7 +121,15 @@ function doc(title, body) {
     "  align-items: center;",
     "}",
     ".top-nav a { font-size: 0.8125rem; }",
+    ".top-nav a.nav-link-right { margin-left: auto; }",
     ".page-header { margin-bottom: 14px; }",
+    ".resident-home-header { text-align: center; }",
+    ".resident-home-header h1 { font-family: var(--font-ui); font-size: 1.9rem; line-height: 1.1; letter-spacing: 0.02em; }",
+    ".resident-home-header .page-subtitle { font-size: 0.75rem; letter-spacing: 0.01em; }",
+    ".home-header { text-align: center; margin-bottom: 18px; }",
+    '.home-header h1 { font-family: "Open Sans", "Helvetica Neue", "Arial", sans-serif; font-size: clamp(2.75rem, 12vw, 4.25rem); line-height: 1.02; letter-spacing: 0.05em; font-weight: 800; }',
+    ".home-header .home-subtitle { max-width: 34ch; margin-left: auto; margin-right: auto; text-align: center; }",
+    ".login-card { border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px; background: var(--bg-surface); box-shadow: 0 10px 22px rgba(15, 23, 42, 0.06); }",
     ".page-subtitle { margin: 6px 0 0; color: var(--text-muted); font-size: 0.8125rem; }",
     ".section { margin-top: 20px; }",
     ".section-header { margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }",
@@ -151,10 +159,15 @@ function doc(title, body) {
     "}",
     "button:disabled { opacity: 0.6; cursor: not-allowed; }",
     ".wide-button { width: 100%; margin-top: 12px; }",
+    ".login-submit { display: block; width: min(160px, 100%); margin-left: auto; margin-right: auto; }",
     ".button-danger { border-color: var(--danger); background: var(--danger); }",
     ".action-form { margin: 12px 0 0; }",
     ".action-form.sticky-cta { position: sticky; bottom: 10px; background: var(--bg-surface); padding-top: 8px; }",
     ".inline-form { margin: 0; }",
+    ".password-row { position: relative; }",
+    ".password-row input { padding-right: 80px; }",
+    ".password-toggle { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); min-height: 32px; padding: 4px 8px; border-radius: 6px; background: transparent; color: var(--accent); border: 1px solid var(--border-subtle); font-size: 0.75rem; font-weight: 700; }",
+    ".password-toggle:hover { background: var(--accent-soft); }",
     ".resident-meta {",
     "  margin: 10px 0 12px;",
     "  padding: 10px 11px;",
@@ -333,26 +346,47 @@ function loginPage({ reason = "", authError = "" }) {
   return doc(
     "Helpdesk",
     [
-      '<header class="page-header">',
+      '<header class="page-header home-header">',
       "<h1>Helpdesk</h1>",
-      '<p class="page-subtitle">Apartment maintenance helpdesk for residents, admins, and staff.</p>',
+      '<p class="page-subtitle home-subtitle">Apartment maintenance helpdesk for residents, admins, and staff.</p>',
       "</header>",
+      '<section class="login-card">',
       loginBanner(reason),
       errorHtml,
       '<form method="post" action="/login" novalidate>',
       '<label for="username">Username</label>',
       '<input id="username" name="username" type="text" autocomplete="username" required>',
       '<label for="password">Password</label>',
+      '<div class="password-row">',
       '<input id="password" name="password" type="password" autocomplete="current-password" required>',
-      '<button type="submit" class="wide-button">Login</button>',
+      '<button type="button" class="password-toggle" id="password-toggle" aria-controls="password" aria-pressed="false">Show</button>',
+      "</div>",
+      '<button type="submit" class="wide-button login-submit">Login</button>',
       "</form>",
+      "</section>",
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@800&display=swap">',
+      "<script>",
+      "(function(){",
+      "  var toggle = document.getElementById('password-toggle');",
+      "  var input = document.getElementById('password');",
+      "  if (toggle && input) {",
+      "    toggle.addEventListener('click', function(){",
+      "      var reveal = input.type === 'password';",
+      "      input.type = reveal ? 'text' : 'password';",
+      "      toggle.textContent = reveal ? 'Hide' : 'Show';",
+      "      toggle.setAttribute('aria-pressed', reveal ? 'true' : 'false');",
+      "    });",
+      "  }",
+      "})();",
+      "</script>",
     ].join(""),
   );
 }
 
 function navWithLogout({ csrfToken, links }) {
   const navLinks = links
-    .map((entry) => `<a href="${entry.href}">${entry.label}</a>`)
+    .map((entry) =>
+      `<a href="${entry.href}"${entry.className ? ` class="${htmlEscape(entry.className)}"` : ""}>${entry.label}</a>`)
     .join("");
   return [
     '<nav class="top-nav">',
@@ -383,6 +417,7 @@ function pageWithLogout({
   detailsHtml = "",
   primaryAction = null,
   primaryActionSticky = false,
+  headerClass = "",
 }) {
   const actionHtml = primaryAction
     ? [
@@ -395,7 +430,7 @@ function pageWithLogout({
     title,
     [
       navWithLogout({ csrfToken, links }),
-      '<header class="page-header">',
+      `<header class="page-header${headerClass ? ` ${htmlEscape(headerClass)}` : ""}">`,
       `<h1>${htmlEscape(title)}</h1>`,
       `<p class="page-subtitle">${htmlEscape(welcomeText)}</p>`,
       "</header>",

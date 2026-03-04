@@ -24,6 +24,12 @@ The app is split by domain under [`src/app`](/Users/nikhiltr/helpdesk/src/app):
 - [`db/`](/Users/nikhiltr/helpdesk/src/app/db): node + d1 adapters
 - [`index.mjs`](/Users/nikhiltr/helpdesk/src/app/index.mjs): thin route orchestration
 
+## Frontend Runtime Policy
+
+- Default rule: no client-side JavaScript.
+- Approved exception: login page password visibility toggle (`Show/Hide`) on `/`.
+- Any additional client-side JavaScript requires explicit approval.
+
 ## Local Development
 
 ```bash

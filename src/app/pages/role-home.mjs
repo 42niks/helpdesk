@@ -49,22 +49,15 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
     const tickets = await listResidentTickets(db, session.accountId);
     return html(
       pageWithLogout({
-        title: "Resident Home (All Tickets)",
-        welcomeText: `Logged in as ${session.username}.`,
+        title: residentProfile.flat_number,
+        welcomeText: residentProfile.apartment_name,
+        headerClass: "resident-home-header",
         csrfToken: session.csrfToken,
         detailsHtml: [
           '<section class="section">',
-          '<div class="section-header"><h2>Resident Summary</h2></div>',
-          '<div class="resident-meta kv-grid">',
-          `<p><strong>Apartment:</strong> ${htmlEscape(residentProfile.apartment_name)}</p>`,
-          `<p><strong>Flat:</strong> ${htmlEscape(residentProfile.flat_number)}</p>`,
-          `<p><strong>Resident:</strong> ${htmlEscape(residentProfile.full_name)}</p>`,
-          `<p><strong>Mobile:</strong> ${htmlEscape(residentProfile.mobile_number)}</p>`,
-          `<p><strong>Active Tickets:</strong> ${activeTicketCount}/5</p>`,
-          "</div>",
-          "</section>",
-          '<section class="section">',
-          '<div class="section-header"><h2>All Tickets</h2></div>',
+          '<div class="section-header"><h2>' +
+            (activeTicketCount === 0 ? "No Active Tickets" : `${activeTicketCount} Active Tickets`) +
+            "</h2></div>",
           residentTicketListHtml(tickets),
           "</section>",
         ].join(""),
@@ -77,8 +70,8 @@ export async function handleRoleHome({ db, request, requiredRole, environment })
           : null,
         primaryActionSticky: true,
         links: [
-          { href: "/resident/staff-ratings", label: "Resident Staff Ratings" },
-          { href: "/resident/account", label: "Profile" },
+          { href: "/resident/staff-ratings", label: "Staff Ratings" },
+          { href: "/resident/account", label: "Profile", className: "nav-link-right" },
         ],
       }),
     );
