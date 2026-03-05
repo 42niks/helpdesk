@@ -12,6 +12,7 @@ Data sync note:
 
 - `overwrite_remote_from_local_dev_db.sql` and `.notx.sql` mirror `local-dev-db` demo data.
 - They intentionally clear remote `sessions` and do not insert session rows.
+- Regenerate these files after reseeding `local-dev-db` before remote import.
 
 Rules:
 

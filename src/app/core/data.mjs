@@ -372,6 +372,44 @@ async function listApartmentLinkedStaffRatings(db, apartmentId) {
   );
 }
 
+async function listApartmentLinkedStaffRatingsByLinkedAt(
+  db,
+  apartmentId,
+  { limit = 5, offset = 0 } = {},
+) {
+  return db.all(
+    [
+      "select st.account_id, st.full_name, st.staff_type, st.mobile_number, sal.linked_at,",
+      "count(case when tk.apartment_id = ? and tr.rating is not null then 1 end) as rating_count,",
+      "avg(case when tk.apartment_id = ? then tr.rating end) as avg_rating",
+      "from staff_apartment_links sal",
+      "join staff st on st.account_id = sal.staff_account_id",
+      "join accounts a on a.id = st.account_id",
+      "left join ticket_reviews tr on tr.staff_account_id = st.account_id",
+      "left join tickets tk on tk.id = tr.ticket_id",
+      "where sal.apartment_id = ? and sal.is_active = 1 and a.is_active = 1",
+      "group by st.account_id, st.full_name, st.staff_type, st.mobile_number, sal.linked_at",
+      "order by sal.linked_at desc, st.full_name asc",
+      "limit ? offset ?",
+    ].join(" "),
+    [apartmentId, apartmentId, apartmentId, limit, offset],
+  );
+}
+
+async function countApartmentLinkedStaff(db, apartmentId) {
+  const row = await db.get(
+    [
+      "select count(*) as total",
+      "from staff_apartment_links sal",
+      "join accounts a on a.id = sal.staff_account_id",
+      "where sal.apartment_id = ? and sal.is_active = 1 and a.is_active = 1",
+      "limit 1",
+    ].join(" "),
+    [apartmentId],
+  );
+  return Number(row?.total || 0);
+}
+
 async function listApartmentReviewTexts(db, apartmentId, { limit = 50, offset = 0 } = {}) {
   return db.all(
     [
@@ -551,6 +589,8 @@ export {
   loadAssigneeForAssignment,
   hasActiveStaffApartmentLink,
   listApartmentLinkedStaffRatings,
+  listApartmentLinkedStaffRatingsByLinkedAt,
+  countApartmentLinkedStaff,
   listApartmentReviewTexts,
   countApartmentReviewTexts,
   listApartmentReviewTextsByStaff,

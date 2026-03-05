@@ -128,7 +128,11 @@ function doc(title, body) {
     ".top-nav .nav-ticket-center { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }",
     ".top-nav .nav-meta { color: var(--text-muted); font-size: 0.75rem; }",
     "@media (max-width: 420px) { .top-nav .nav-ticket-center { position: static; transform: none; order: 3; flex-basis: 100%; text-align: center; } }",
+    ".top-nav.top-nav--with-ticket-center { flex-wrap: nowrap; }",
+    ".top-nav.top-nav--with-ticket-center .nav-ticket-center { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }",
+    "@media (max-width: 420px) { .top-nav.top-nav--with-ticket-center .nav-ticket-center { position: absolute; left: 50%; transform: translateX(-50%); order: 0; flex-basis: auto; text-align: inherit; } }",
     ".page-header { margin-bottom: 14px; }",
+    ".page-header-centered { text-align: center; }",
     ".resident-home-header { text-align: center; }",
     ".resident-home-header h1 { font-family: var(--font-ui); font-size: 2.25rem; line-height: 1.06; letter-spacing: 0.02em; }",
     ".resident-home-header .page-subtitle { font-size: 0.8125rem; letter-spacing: 0.01em; }",
@@ -199,6 +203,7 @@ function doc(title, body) {
     ".wide-button { width: 100%; margin-top: 12px; }",
     ".login-submit { display: block; width: min(160px, 100%); margin-left: auto; margin-right: auto; }",
     ".button-danger { border-color: var(--danger); background: var(--danger); }",
+    ".button-secondary { border-color: #94a3b8; background: #f1f5f9; color: #334155; }",
     ".action-form { margin: 12px 0 0; }",
     ".action-form.sticky-cta { position: sticky; bottom: 10px; background: var(--bg-surface); padding-top: 8px; }",
     ".inline-form { margin: 0; }",
@@ -316,6 +321,20 @@ function doc(title, body) {
     ".staff-summary-average { margin: 0; font-size: 1.2rem; line-height: 1.1; font-weight: 800; color: var(--text-primary); }",
     ".staff-summary-star { color: #f59e0b; }",
     ".staff-summary-count { margin: 4px 0 0; color: var(--text-muted); font-size: 0.75rem; }",
+    ".staff-performance-list { margin-top: 10px; }",
+    ".staff-performance-card { padding-left: 14px; }",
+    ".staff-performance-card::before { width: 5px; }",
+    ".staff-performance-card--electrician::before { background: #0f766e; }",
+    ".staff-performance-card--plumber::before { background: #2563eb; }",
+    ".staff-performance-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }",
+    ".staff-performance-name { margin: 0; font-size: 1.02rem; line-height: 1.2; padding-left: 2px; }",
+    ".staff-type-pill { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 10px; border-radius: 999px; border: 1px solid transparent; font-size: 0.74rem; line-height: 1.1; font-weight: 700; white-space: nowrap; }",
+    ".staff-type-pill--electrician { color: #134e4a; background: #ccfbf1; border-color: #5eead4; }",
+    ".staff-type-pill--plumber { color: #1e3a8a; background: #dbeafe; border-color: #93c5fd; }",
+    ".staff-performance-metrics { margin-top: 10px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }",
+    ".staff-performance-metric { margin: 0; padding: 8px 9px; border: 1px solid var(--border-subtle); border-radius: 8px; background: #f8fafc; min-height: 62px; }",
+    ".staff-performance-metric-label { display: block; color: var(--text-muted); font-size: 0.72rem; letter-spacing: 0.01em; }",
+    ".staff-performance-metric-value { display: block; margin-top: 4px; font-family: var(--font-data); font-size: 1rem; line-height: 1.2; color: var(--text-primary); }",
     ".pagination-row { margin-top: 10px; }",
     ".pagination-row .small { margin: 0 0 8px; }",
     ".pagination-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }",
@@ -337,6 +356,10 @@ function doc(title, body) {
     ".timeline-item--comment .timeline-type { color: #475569; background: #eef2f6; border: 1px solid #d5dee8; }",
     ".comment-head { margin: 0; color: var(--text-muted); font-size: 0.8125rem; font-weight: 600; }",
     ".comment-body { margin: 6px 0 0; font-size: 0.9375rem; }",
+    ".comment-item--linkable { padding: 0; }",
+    ".comment-item-link { display: block; margin: 0; padding: 10px 11px; color: inherit; text-decoration: none; border-radius: 10px; }",
+    ".comment-item-link:hover { background: #f8fbfc; }",
+    ".comment-item-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }",
     ".small { color: var(--text-muted); font-size: 0.75rem; }",
     ".empty-state { margin: 12px 0; color: var(--text-muted); font-size: 0.8125rem; }",
     ".status-chip { display: inline-block; border-radius: 999px; padding: 2px 8px; border: 1px solid var(--border-subtle); font-size: 0.75rem; font-weight: 700; white-space: nowrap; }",
@@ -520,6 +543,8 @@ function loginPage({ reason = "", authError = "" }) {
 }
 
 function navWithLogout({ csrfToken, links }) {
+  const hasTicketCenter = links.some((entry) => String(entry.className || "").includes("nav-ticket-center"));
+  const navClass = hasTicketCenter ? "top-nav top-nav--with-ticket-center" : "top-nav";
   const navLinks = links
     .map((entry) => {
       const classAttr = entry.className ? ` class="${htmlEscape(entry.className)}"` : "";
@@ -530,7 +555,7 @@ function navWithLogout({ csrfToken, links }) {
     })
     .join("");
   return [
-    '<nav class="top-nav">',
+    `<nav class="${navClass}">`,
     `<input type="hidden" name="csrf_token" value="${htmlEscape(csrfToken)}">`,
     navLinks,
     "</nav>",

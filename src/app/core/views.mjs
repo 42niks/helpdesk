@@ -689,13 +689,8 @@ function renderCommentForm({ session, ticketId, ticketStatus, values = {}, error
 }
 
 function renderAdminAssignForm({ session, ticket, assignableStaff, selectedStaffId = "", assignError = "" }) {
-  if (ticket.status === "completed") {
-    return [
-      '<article class="resident-meta detail-card">',
-      "<h3>Assignment</h3>",
-      '<p class="empty-state">Assignment is closed because ticket is completed.</p>',
-      "</article>",
-    ].join("");
+  if (ticket.status === "completed" || ticket.assigned_staff_account_id) {
+    return "";
   }
   const optionsHtml = [
     '<option value="">Select staff member</option>',
@@ -723,30 +718,42 @@ function renderAdminAssignForm({ session, ticket, assignableStaff, selectedStaff
   ].join("");
 }
 
-function renderAdminCompleteForm({ session, ticket, cancelReason = "", statusError = "" }) {
+function renderAdminCommentActionsForm({
+  session,
+  ticket,
+  adminNote = "",
+  commentErrors = {},
+  commentError = "",
+  statusError = "",
+}) {
   if (ticket.status === "completed") {
-    return [
-      '<article class="resident-meta detail-card">',
-      "<h3>Complete as Cancelled/Duplicate</h3>",
-      '<p class="empty-state">Ticket is already completed.</p>',
-      "</article>",
-    ].join("");
+    return "";
   }
-  const errorHtml = statusError
-    ? `<div class="message error">${htmlEscape(statusError)}</div>`
+  const commentErrorHtml = commentErrors.comment_text
+    ? `<p class="field-error">${htmlEscape(commentErrors.comment_text)}</p>`
     : "";
+  const errorHtml = [
+    commentError ? `<div class="message error">${htmlEscape(commentError)}</div>` : "",
+    statusError ? `<div class="message error">${htmlEscape(statusError)}</div>` : "",
+  ].join("");
   return [
     '<article class="resident-meta detail-card">',
-    "<h3>Complete as Cancelled/Duplicate</h3>",
+    "<h3>Comment</h3>",
     errorHtml,
     '<form method="post" action="/tickets/',
     `${ticket.id}`,
     '/status" novalidate>',
     `<input type="hidden" name="csrf_token" value="${htmlEscape(session.csrfToken)}">`,
     '<input type="hidden" name="next_status" value="completed">',
-    '<label for="cancel_reason">Cancellation Reason</label>',
-    `<textarea id="cancel_reason" name="cancel_reason" required>${htmlEscape(cancelReason)}</textarea>`,
-    '<button type="submit" class="wide-button">Complete as Cancelled/Duplicate</button>',
+    '<label for="admin_note">Add Comment</label>',
+    `<textarea id="admin_note" name="admin_note" required>${htmlEscape(adminNote)}</textarea>`,
+    commentErrorHtml,
+    '<div class="form-actions">',
+    '<button type="submit" class="wide-button button-danger">Comment and Close</button>',
+    '<button type="submit" class="wide-button button-secondary" formaction="/tickets/',
+    `${ticket.id}`,
+    '/comments">Just Comment</button>',
+    "</div>",
     "</form>",
     "</article>",
   ].join("");
@@ -754,12 +761,7 @@ function renderAdminCompleteForm({ session, ticket, cancelReason = "", statusErr
 
 function renderStaffStatusForm({ session, ticket, nextStatus = "", statusError = "" }) {
   if (ticket.status === "completed") {
-    return [
-      '<article class="resident-meta detail-card">',
-      "<h3>Update Status</h3>",
-      '<p class="empty-state">Ticket is already completed.</p>',
-      "</article>",
-    ].join("");
+    return "";
   }
   let availableOptions = [];
   if (ticket.status === "assigned") {
@@ -768,12 +770,7 @@ function renderStaffStatusForm({ session, ticket, nextStatus = "", statusError =
     availableOptions = ["completed"];
   }
   if (availableOptions.length === 0) {
-    return [
-      '<article class="resident-meta detail-card">',
-      "<h3>Update Status</h3>",
-      '<p class="empty-state">No status transition is available.</p>',
-      "</article>",
-    ].join("");
+    return "";
   }
   const optionsHtml = availableOptions
     .map((status) => {
@@ -885,10 +882,12 @@ function operatorTicketDetailPage({
     })
     : "";
   const statusHtml = role === "admin"
-    ? renderAdminCompleteForm({
+    ? renderAdminCommentActionsForm({
       session,
       ticket,
-      cancelReason: formState.cancel_reason || "",
+      adminNote: formState.admin_note || formState.comment_text || formState.cancel_reason || "",
+      commentErrors: formState.commentErrors || {},
+      commentError: formState.commentError || "",
       statusError: formState.statusError || "",
     })
     : renderStaffStatusForm({
@@ -897,9 +896,20 @@ function operatorTicketDetailPage({
       nextStatus: formState.next_status || "",
       statusError: formState.statusError || "",
     });
+  const actionsSectionHtml = assignmentHtml || statusHtml
+    ? [
+      '<section class="section">',
+      "<h2>Actions</h2>",
+      assignmentHtml,
+      statusHtml,
+      "</section>",
+    ].join("")
+    : "";
   const eventsHtml = renderUnifiedTimeline(events, comments);
   const commentSectionHtml = ticket.status === "completed"
     ? ""
+    : role === "admin"
+      ? ""
     : [
       '<section class="section">',
       "<h2>Add Comment</h2>",
@@ -938,11 +948,7 @@ function operatorTicketDetailPage({
         "<h2>Timeline</h2>",
         eventsHtml,
         "</section>",
-        '<section class="section">',
-        "<h2>Actions</h2>",
-        assignmentHtml,
-        statusHtml,
-        "</section>",
+        actionsSectionHtml,
         commentSectionHtml,
       ].join(""),
     ),

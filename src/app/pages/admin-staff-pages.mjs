@@ -1,8 +1,9 @@
 import {
   countApartmentReviewTexts,
-  listApartmentLinkedStaffRatings,
-  listApartmentReviewTexts,
+  countApartmentLinkedStaff,
+  listApartmentLinkedStaffRatingsByLinkedAt,
   listPlatformStaffRatingsByAccountIds,
+  listApartmentReviewTexts,
   listStaffLinkedApartments,
 } from "../core/data.mjs";
 import {
@@ -13,7 +14,6 @@ import {
   logoutPanel,
   navWithLogout,
   parsePositiveInt,
-  ratingLabel,
   staffTypeLabel,
 } from "../core/utils.mjs";
 import {
@@ -101,86 +101,47 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
   }
   const { session, adminProfile } = adminAuth;
   const url = new URL(request.url);
-  const showPlatform = url.searchParams.get("show_platform") === "1" || url.searchParams.get("view") === "platform";
-  const sortRaw = (url.searchParams.get("sort") || "name").trim().toLowerCase();
-  const sort = ["name", "rating_count", "avg_rating"].includes(sortRaw) ? sortRaw : "name";
-  const dirRaw = (url.searchParams.get("dir") || "").trim().toLowerCase();
-  const dirDefault = sort === "name" ? "asc" : "desc";
-  const dir = ["asc", "desc"].includes(dirRaw) ? dirRaw : dirDefault;
-  const pageSize = 8;
+  const reviewPageSize = 8;
+  const summaryStaffLimit = 3;
   const requestedPage = parsePositiveInt(url.searchParams.get("page")) || 1;
 
-  const [ratingsRaw, totalReviews] = await Promise.all([
-    listApartmentLinkedStaffRatings(db, adminProfile.apartment_id),
+  const [ratings, totalLinkedStaff, totalReviews] = await Promise.all([
+    listApartmentLinkedStaffRatingsByLinkedAt(db, adminProfile.apartment_id, {
+      limit: summaryStaffLimit,
+      offset: 0,
+    }),
+    countApartmentLinkedStaff(db, adminProfile.apartment_id),
     countApartmentReviewTexts(db, adminProfile.apartment_id),
   ]);
-  const totalPages = Math.max(1, Math.ceil(totalReviews / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalReviews / reviewPageSize));
   const currentPage = Math.min(requestedPage, totalPages);
-  const offset = (currentPage - 1) * pageSize;
+  const offset = (currentPage - 1) * reviewPageSize;
   const reviews = await listApartmentReviewTexts(
     db,
     adminProfile.apartment_id,
-    { limit: pageSize, offset },
+    { limit: reviewPageSize, offset },
   );
-  const staffIds = ratingsRaw.map((row) => row.account_id);
-  const platformRows = showPlatform
-    ? await listPlatformStaffRatingsByAccountIds(db, staffIds)
-    : [];
-  const platformByStaff = new Map(
-    platformRows.map((row) => [row.account_id, row]),
-  );
-  const ratings = [...ratingsRaw].sort((a, b) => {
-    if (sort === "rating_count") {
-      const aValue = Number(a.rating_count || 0);
-      const bValue = Number(b.rating_count || 0);
-      if (aValue !== bValue) {
-        return dir === "asc" ? aValue - bValue : bValue - aValue;
-      }
-    } else if (sort === "avg_rating") {
-      const aValue = Number.isFinite(Number(a.avg_rating)) ? Number(a.avg_rating) : -1;
-      const bValue = Number.isFinite(Number(b.avg_rating)) ? Number(b.avg_rating) : -1;
-      if (aValue !== bValue) {
-        return dir === "asc" ? aValue - bValue : bValue - aValue;
-      }
-    } else {
-      const compare = String(a.full_name || "").localeCompare(String(b.full_name || ""), "en", { sensitivity: "base" });
-      if (compare !== 0) {
-        return dir === "asc" ? compare : -compare;
-      }
-    }
-    return String(a.full_name || "").localeCompare(String(b.full_name || ""), "en", { sensitivity: "base" });
-  });
   const summaryRows = ratings.length
     ? [
-      '<ul class="ticket-list">',
+      '<ul class="ticket-list staff-performance-list">',
       ratings
         .map((row) =>
           [
-            '<li class="ticket-item">',
-            `<h3 class="staff-summary-name">${htmlEscape(row.full_name)}</h3>`,
-            '<p class="detail-card-row"><strong>Type:</strong> ',
-            `<span class="detail-card-value">${htmlEscape(staffTypeLabel(row.staff_type))}</span>`,
+            `<li class="ticket-item staff-performance-card staff-performance-card--${htmlEscape(row.staff_type)}">`,
+            '<div class="staff-performance-head">',
+            `<h3 class="staff-performance-name">${htmlEscape(row.full_name)}</h3>`,
+            `<span class="staff-type-pill staff-type-pill--${htmlEscape(row.staff_type)}">${htmlEscape(staffTypeLabel(row.staff_type))}</span>`,
+            "</div>",
+            '<div class="staff-performance-metrics">',
+            '<p class="staff-performance-metric">',
+            '<span class="staff-performance-metric-label">Rating Count</span>',
+            `<strong class="staff-performance-metric-value">${htmlEscape(String(row.rating_count || 0))}</strong>`,
             "</p>",
-            '<p class="detail-card-row"><strong>Apartment Rating Count:</strong> ',
-            `<span class="detail-card-value">${htmlEscape(String(row.rating_count || 0))}</span>`,
+            '<p class="staff-performance-metric">',
+            '<span class="staff-performance-metric-label">Average Rating</span>',
+            `<strong class="staff-performance-metric-value">${htmlEscape(formatAverageRating(row.avg_rating))}</strong>`,
             "</p>",
-            '<p class="detail-card-row"><strong>Apartment Average Rating:</strong> ',
-            `<span class="detail-card-value">${htmlEscape(formatAverageRating(row.avg_rating))}</span>`,
-            "</p>",
-            showPlatform
-              ? [
-                '<p class="detail-card-row"><strong>Platform Rating Count:</strong> ',
-                `<span class="detail-card-value">${htmlEscape(String(platformByStaff.get(row.account_id)?.rating_count || 0))}</span>`,
-                "</p>",
-              ].join("")
-              : "",
-            showPlatform
-              ? [
-                '<p class="detail-card-row"><strong>Platform Average Rating:</strong> ',
-                `<span class="detail-card-value">${htmlEscape(formatAverageRating(platformByStaff.get(row.account_id)?.avg_rating))}</span>`,
-                "</p>",
-              ].join("")
-              : "",
+            "</div>",
             "</li>",
           ].join(""),
         )
@@ -192,16 +153,7 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
     totalReviews === 0 ? 0 : offset + 1,
     Math.min(offset + reviews.length, totalReviews),
   ];
-  const buildPageHref = (page) => {
-    const params = new URLSearchParams();
-    if (showPlatform) {
-      params.set("show_platform", "1");
-    }
-    params.set("sort", sort);
-    params.set("dir", dir);
-    params.set("page", String(page));
-    return `/admin/staff?${params.toString()}`;
-  };
+  const buildPageHref = (page) => `/admin/staff?page=${page}`;
   const paginationHtml = totalReviews > 0
     ? [
       '<div class="resident-meta pagination-row">',
@@ -223,9 +175,11 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
       reviews
         .map((review) =>
           [
-            '<li class="comment-item">',
-            `<p class="comment-head">${htmlEscape(review.staff_name)} (${htmlEscape(ratingLabel(review.rating))}) | ${htmlEscape(review.ticket_number)} | ${htmlEscape(review.created_at)}</p>`,
+            '<li class="comment-item comment-item--linkable">',
+            `<a class="comment-item-link" href="/tickets/${htmlEscape(String(review.ticket_id))}">`,
+            `<p class="comment-head">${htmlEscape(review.staff_name)} | ${htmlEscape(review.ticket_number)} | ${htmlEscape(review.created_at)}</p>`,
             `<p class="comment-body">${htmlEscape(review.review_text)}</p>`,
+            "</a>",
             "</li>",
           ].join(""),
         )
@@ -236,7 +190,7 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
 
   return html(
     doc(
-      "Apartment Staff Performance",
+      "Staff Performance",
       [
         navWithLogout({
           csrfToken: session.csrfToken,
@@ -244,45 +198,145 @@ export async function handleAdminStaffRatingsPage({ db, request, environment }) 
             { href: "/admin", label: "← Home", className: "nav-home-pill" },
           ],
         }),
-        '<header class="page-header">',
-        "<h1>Apartment Staff Performance</h1>",
-        '<p class="page-subtitle">Track apartment and optional platform-wide staff ratings.</p>',
+        '<header class="page-header page-header-centered">',
+        "<h1>Staff Performance</h1>",
+        `<p class="page-subtitle">${htmlEscape(adminProfile.apartment_name)}</p>`,
         "</header>",
-        '<div class="resident-meta kv-grid">',
-        `<p><strong>Apartment:</strong> ${htmlEscape(adminProfile.apartment_name)}</p>`,
-        "</div>",
         '<section class="section">',
-        "<h2>View Controls</h2>",
-        '<div class="resident-meta">',
-        '<form method="get" action="/admin/staff" novalidate>',
-        '<label for="show_platform">',
-        `<input type="checkbox" id="show_platform" name="show_platform" value="1"${showPlatform ? " checked" : ""}> Show Platform-Wide Ratings`,
-        "</label>",
-        '<label for="sort">Sort Staff By</label>',
-        '<select id="sort" name="sort">',
-        `<option value="name"${sort === "name" ? " selected" : ""}>Name</option>`,
-        `<option value="rating_count"${sort === "rating_count" ? " selected" : ""}>Apartment Rating Count</option>`,
-        `<option value="avg_rating"${sort === "avg_rating" ? " selected" : ""}>Apartment Average Rating</option>`,
-        "</select>",
-        '<label for="dir">Order</label>',
-        '<select id="dir" name="dir">',
-        `<option value="asc"${dir === "asc" ? " selected" : ""}>Ascending</option>`,
-        `<option value="desc"${dir === "desc" ? " selected" : ""}>Descending</option>`,
-        "</select>",
-        '<button type="submit" class="wide-button">Apply View</button>',
-        "</form>",
-        "</div>",
-        "</section>",
-        showPlatform
-          ? '<div class="message info">Platform-wide averages and counts are shown alongside apartment metrics.</div>'
-          : "",
-        '<section class="section">',
-        "<h2>Linked Staff Summary</h2>",
+        "<h2>Staff Summary</h2>",
         summaryRows,
+        totalLinkedStaff > summaryStaffLimit
+          ? '<a class="button-link button-link-full" href="/admin/staff/all">View all staff</a>'
+          : "",
         "</section>",
         '<section class="section">',
         "<h2>Recent Reviews</h2>",
         reviewRows,
+        paginationHtml,
+        "</section>",
+      ].join(""),
+    ),
+  );
+}
+
+export async function handleAdminAllApartmentStaffPage({ db, request, environment }) {
+  const adminAuth = await requireAdminSession({ db, request, environment });
+  if (adminAuth.response) {
+    return adminAuth.response;
+  }
+  const { session, adminProfile } = adminAuth;
+  const url = new URL(request.url);
+  const pageSize = 8;
+  const showPlatform = url.searchParams.get("show_platform") === "1";
+  const requestedPage = parsePositiveInt(url.searchParams.get("page")) || 1;
+
+  const totalStaff = await countApartmentLinkedStaff(db, adminProfile.apartment_id);
+  const totalPages = Math.max(1, Math.ceil(totalStaff / pageSize));
+  const currentPage = Math.min(requestedPage, totalPages);
+  const offset = (currentPage - 1) * pageSize;
+  const staffRows = await listApartmentLinkedStaffRatingsByLinkedAt(
+    db,
+    adminProfile.apartment_id,
+    { limit: pageSize, offset },
+  );
+  const platformRows = showPlatform
+    ? await listPlatformStaffRatingsByAccountIds(db, staffRows.map((row) => row.account_id))
+    : [];
+  const platformByStaff = new Map(
+    platformRows.map((row) => [row.account_id, row]),
+  );
+  const [firstRow, lastRow] = [
+    totalStaff === 0 ? 0 : offset + 1,
+    Math.min(offset + staffRows.length, totalStaff),
+  ];
+  const buildPageHref = (page) => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    if (showPlatform) {
+      params.set("show_platform", "1");
+    }
+    return `/admin/staff/all?${params.toString()}`;
+  };
+  const paginationHtml = totalStaff > pageSize
+    ? [
+      '<div class="resident-meta pagination-row">',
+      `<p class="small">Showing ${firstRow}-${lastRow} of ${totalStaff} staff</p>`,
+      '<div class="pagination-actions">',
+      currentPage > 1
+        ? `<a class="button-link" href="${buildPageHref(currentPage - 1)}">← Previous</a>`
+        : '<span class="button-link button-link-disabled">← Previous</span>',
+      currentPage < totalPages
+        ? `<a class="button-link" href="${buildPageHref(currentPage + 1)}">Next →</a>`
+        : '<span class="button-link button-link-disabled">Next →</span>',
+      "</div>",
+      "</div>",
+    ].join("")
+    : "";
+  const staffListHtml = staffRows.length
+    ? [
+      '<ul class="ticket-list staff-performance-list">',
+      staffRows.map((row) =>
+        [
+          `<li class="ticket-item staff-performance-card staff-performance-card--${htmlEscape(row.staff_type)}">`,
+          '<div class="staff-performance-head">',
+          `<h3 class="staff-performance-name">${htmlEscape(row.full_name)}</h3>`,
+          `<span class="staff-type-pill staff-type-pill--${htmlEscape(row.staff_type)}">${htmlEscape(staffTypeLabel(row.staff_type))}</span>`,
+          "</div>",
+          '<div class="staff-performance-metrics">',
+          '<p class="staff-performance-metric">',
+          '<span class="staff-performance-metric-label">Apartment Rating Count</span>',
+          `<strong class="staff-performance-metric-value">${htmlEscape(String(row.rating_count || 0))}</strong>`,
+          "</p>",
+          '<p class="staff-performance-metric">',
+          '<span class="staff-performance-metric-label">Apartment Average Rating</span>',
+          `<strong class="staff-performance-metric-value">${htmlEscape(formatAverageRating(row.avg_rating))}</strong>`,
+          "</p>",
+          showPlatform
+            ? [
+              '<p class="staff-performance-metric">',
+              '<span class="staff-performance-metric-label">Platform Rating Count</span>',
+              `<strong class="staff-performance-metric-value">${htmlEscape(String(platformByStaff.get(row.account_id)?.rating_count || 0))}</strong>`,
+              "</p>",
+              '<p class="staff-performance-metric">',
+              '<span class="staff-performance-metric-label">Platform Average Rating</span>',
+              `<strong class="staff-performance-metric-value">${htmlEscape(formatAverageRating(platformByStaff.get(row.account_id)?.avg_rating))}</strong>`,
+              "</p>",
+            ].join("")
+            : "",
+          "</div>",
+          "</li>",
+        ].join(""))
+        .join(""),
+      "</ul>",
+    ].join("")
+    : '<p class="empty-state">No active linked staff found for this apartment.</p>';
+
+  return html(
+    doc(
+      "All Apartment Staff",
+      [
+        navWithLogout({
+          csrfToken: session.csrfToken,
+          links: [
+            { href: "/admin/staff", label: "← Staff Performance", className: "nav-home-pill" },
+          ],
+        }),
+        '<header class="page-header page-header-centered">',
+        "<h1>All Apartment Staff</h1>",
+        "</header>",
+        '<div class="message info">',
+        `Apartment-specific ratings for ${htmlEscape(adminProfile.apartment_name)}.`,
+        "</div>",
+        '<section class="section">',
+        '<div class="resident-meta">',
+        '<form method="get" action="/admin/staff/all" novalidate>',
+        '<label for="show_platform">',
+        `<input type="checkbox" id="show_platform" name="show_platform" value="1"${showPlatform ? " checked" : ""}> Show Platform-Wide Ratings`,
+        "</label>",
+        '<button type="submit" class="wide-button">Apply View</button>',
+        "</form>",
+        "</div>",
+        staffListHtml,
         paginationHtml,
         "</section>",
       ].join(""),

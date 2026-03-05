@@ -150,6 +150,7 @@ export async function renderTicketDetailForContext({
     assignableStaff,
     formState: {
       comment_text: formState.commentValues?.comment_text || "",
+      admin_note: formState.admin_note || formState.commentValues?.comment_text || formState.cancel_reason || "",
       commentErrors: formState.commentErrors || {},
       commentError: formState.commentFormError || "",
       staff_account_id: formState.staff_account_id || "",
@@ -202,7 +203,11 @@ export async function handleTicketComment({ db, request, environment, ticketId, 
     return renderNotFound({ db, request });
   }
 
-  const validation = validateCommentInput(form);
+  const commentSource = form.comment_text || form.admin_note || "";
+  const validation = validateCommentInput({
+    ...form,
+    comment_text: commentSource,
+  });
   if (!validation.isValid) {
     return renderTicketDetailForContext({
       db,

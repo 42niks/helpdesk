@@ -70,6 +70,12 @@ UI demo seed (keeps existing resident/admin actors, resets ticket-domain data, r
 node local/seed-ui-demo.mjs
 ```
 
+UI demo seed variant that preserves existing `sessions` while refreshing all ticket-domain data:
+
+```bash
+node local/seed-ui-demo-keep-sessions.mjs
+```
+
 ## Testing
 
 Backend tests:

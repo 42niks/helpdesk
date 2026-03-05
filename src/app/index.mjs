@@ -25,6 +25,7 @@ import {
 } from "./pages/resident-pages.mjs";
 import {
   handleAdminAccountPage,
+  handleAdminAllApartmentStaffPage,
   handleAdminStaffRatingsPage,
   handleStaffAccountPage,
 } from "./pages/admin-staff-pages.mjs";
@@ -188,6 +189,10 @@ export function createApp({ db, environment = "local" }) {
 
         if (request.method === "GET" && url.pathname === "/admin/staff") {
           return finish(await handleAdminStaffRatingsPage({ db, request, environment }));
+        }
+
+        if (request.method === "GET" && url.pathname === "/admin/staff/all") {
+          return finish(await handleAdminAllApartmentStaffPage({ db, request, environment }));
         }
 
         if (request.method === "GET" && url.pathname === "/admin/account") {

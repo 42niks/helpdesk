@@ -262,7 +262,10 @@ test("shared ticket detail visibility: resident owner, admin apartment, assigned
     }),
   );
   assert.equal(adminResponse.status, 200);
-  assert.match(await adminResponse.text(), /Admin Home \(All Tickets\)/);
+  const adminHtml = await adminResponse.text();
+  assert.match(adminHtml, /href="\/admin"/);
+  assert.match(adminHtml, /<nav class="top-nav top-nav--with-ticket-center">/);
+  assert.match(adminHtml, /@media \(max-width: 420px\) \{ \.top-nav\.top-nav--with-ticket-center \.nav-ticket-center \{ position: absolute;/);
 
   const staffAssigned = await loginAndSession(fixture.app, "staff_electric_1", "/staff");
   const staffResponse = await fixture.app.fetch(
@@ -271,7 +274,7 @@ test("shared ticket detail visibility: resident owner, admin apartment, assigned
     }),
   );
   assert.equal(staffResponse.status, 200);
-  assert.match(await staffResponse.text(), /Staff Home \(Assigned Tickets\)/);
+  assert.match(await staffResponse.text(), /href="\/staff"/);
 
   const staffNotAssigned = await loginAndSession(fixture.app, "staff_plumber_1", "/staff");
   const hiddenResponse = await fixture.app.fetch(
@@ -346,11 +349,10 @@ test("admin completion requires cancel reason and records audit trail", async ()
   assert.equal(event.event_type, "admin_completed_cancel");
   assert.equal(event.note_text, reasonText);
 
-  const comment = db
-    .prepare("select comment_text, author_role from ticket_comments where ticket_id = ? order by id desc limit 1")
+  const comments = db
+    .prepare("select count(*) as total from ticket_comments where ticket_id = ?")
     .get(ticketId);
-  assert.equal(comment.comment_text, reasonText);
-  assert.equal(comment.author_role, "admin");
+  assert.equal(comments.total, 0);
 
   db.close();
 
@@ -420,6 +422,137 @@ test("admin can complete assigned and in_progress tickets with cancellation reas
     .prepare("select count(*) as count from ticket_events where ticket_id in (?, ?) and event_type = 'admin_completed_cancel'")
     .get(assignedTicketId, inProgressTicketId).count;
   assert.equal(eventCount, 2);
+  db.close();
+
+  fixture.close();
+  fixtureDb.cleanup();
+});
+
+test("ticket detail actions are hidden when not applicable for admin and staff", async () => {
+  const fixtureDb = createFixtureDb();
+  const assignedTicketId = insertTicket({
+    sqlitePath: fixtureDb.sqlitePath,
+    apartmentId: fixtureDb.apartmentPalmId,
+    residentAccountId: fixtureDb.resident101AccountId,
+    flatNumber: "101",
+    ticketNumber: "PM-100020",
+    status: "assigned",
+    assignedStaffAccountId: fixtureDb.staffElectric1AccountId,
+  });
+  const completedTicketId = insertTicket({
+    sqlitePath: fixtureDb.sqlitePath,
+    apartmentId: fixtureDb.apartmentPalmId,
+    residentAccountId: fixtureDb.resident101AccountId,
+    flatNumber: "101",
+    ticketNumber: "PM-100021",
+    status: "completed",
+    assignedStaffAccountId: fixtureDb.staffElectric1AccountId,
+  });
+
+  const fixture = createFixtureApp(fixtureDb.sqlitePath);
+
+  const admin = await loginAndSession(fixture.app, "admin_pm", "/admin");
+  const assignedAdminDetail = await fixture.app.fetch(
+    new Request(`http://helpdesk.local/tickets/${assignedTicketId}`, {
+      headers: { cookie: admin.cookiePair },
+    }),
+  );
+  assert.equal(assignedAdminDetail.status, 200);
+  const assignedAdminHtml = await assignedAdminDetail.text();
+  assert.match(assignedAdminHtml, /<h2>Actions<\/h2>/);
+  assert.doesNotMatch(assignedAdminHtml, /Save Assignment/);
+  assert.match(assignedAdminHtml, /Comment and Close/);
+  assert.match(assignedAdminHtml, /Just Comment/);
+
+  const completedAdminDetail = await fixture.app.fetch(
+    new Request(`http://helpdesk.local/tickets/${completedTicketId}`, {
+      headers: { cookie: admin.cookiePair },
+    }),
+  );
+  assert.equal(completedAdminDetail.status, 200);
+  const completedAdminHtml = await completedAdminDetail.text();
+  assert.doesNotMatch(completedAdminHtml, /<h2>Actions<\/h2>/);
+  assert.doesNotMatch(completedAdminHtml, /Save Assignment/);
+  assert.doesNotMatch(completedAdminHtml, /Comment and Close/);
+  assert.doesNotMatch(completedAdminHtml, /Just Comment/);
+
+  const staff = await loginAndSession(fixture.app, "staff_electric_1", "/staff");
+  const completedStaffDetail = await fixture.app.fetch(
+    new Request(`http://helpdesk.local/tickets/${completedTicketId}`, {
+      headers: { cookie: staff.cookiePair },
+    }),
+  );
+  assert.equal(completedStaffDetail.status, 200);
+  const completedStaffHtml = await completedStaffDetail.text();
+  assert.doesNotMatch(completedStaffHtml, /<h2>Actions<\/h2>/);
+  assert.doesNotMatch(completedStaffHtml, /Update Status/);
+
+  fixture.close();
+  fixtureDb.cleanup();
+});
+
+test("admin ticket detail uses one note box with two action buttons for comment flows", async () => {
+  const fixtureDb = createFixtureDb();
+  const ticketId = insertTicket({
+    sqlitePath: fixtureDb.sqlitePath,
+    apartmentId: fixtureDb.apartmentPalmId,
+    residentAccountId: fixtureDb.resident101AccountId,
+    flatNumber: "101",
+    ticketNumber: "PM-100022",
+    status: "open",
+  });
+
+  const fixture = createFixtureApp(fixtureDb.sqlitePath);
+  const admin = await loginAndSession(fixture.app, "admin_pm", "/admin");
+
+  const detailResponse = await fixture.app.fetch(
+    new Request(`http://helpdesk.local/tickets/${ticketId}`, {
+      headers: { cookie: admin.cookiePair },
+    }),
+  );
+  assert.equal(detailResponse.status, 200);
+  const detailHtml = await detailResponse.text();
+  assert.match(detailHtml, /<textarea id="admin_note" name="admin_note" required>/);
+  assert.match(detailHtml, /<button type="submit" class="wide-button button-danger">Comment and Close<\/button>/);
+  assert.match(detailHtml, /<button type="submit" class="wide-button button-secondary" formaction="\/tickets\/\d+\/comments">Just Comment<\/button>/);
+
+  const justCommentResponse = await fixture.app.fetch(
+    buildFormRequest(
+      `http://helpdesk.local/tickets/${ticketId}/comments`,
+      {
+        csrf_token: admin.csrfToken,
+        admin_note: "Admin quick note from shared box.",
+      },
+      admin.cookiePair,
+    ),
+  );
+  assert.equal(justCommentResponse.status, 303);
+
+  const commentAndCloseResponse = await fixture.app.fetch(
+    buildFormRequest(
+      `http://helpdesk.local/tickets/${ticketId}/status`,
+      {
+        csrf_token: admin.csrfToken,
+        next_status: "completed",
+        admin_note: "Closing via shared box.",
+      },
+      admin.cookiePair,
+    ),
+  );
+  assert.equal(commentAndCloseResponse.status, 303);
+
+  const db = new DatabaseSync(fixtureDb.sqlitePath);
+  const ticket = db.prepare("select status from tickets where id = ?").get(ticketId);
+  assert.equal(ticket.status, "completed");
+  const comments = db
+    .prepare("select comment_text from ticket_comments where ticket_id = ? order by id asc")
+    .all(ticketId);
+  assert.equal(comments.length, 1);
+  assert.equal(comments[0].comment_text, "Admin quick note from shared box.");
+  const closeEvent = db
+    .prepare("select note_text from ticket_events where ticket_id = ? and event_type = 'admin_completed_cancel' order by id desc limit 1")
+    .get(ticketId);
+  assert.equal(closeEvent.note_text, "Closing via shared box.");
   db.close();
 
   fixture.close();

@@ -274,6 +274,7 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
         responseCode: 409,
         formState: {
           cancel_reason: form.cancel_reason || "",
+          admin_note: form.admin_note || form.cancel_reason || "",
           statusError: "Admin can only complete tickets through this action.",
         },
       });
@@ -286,11 +287,12 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
         responseCode: 409,
         formState: {
           cancel_reason: form.cancel_reason || "",
+          admin_note: form.admin_note || form.cancel_reason || "",
           statusError: "Ticket is already completed.",
         },
       });
     }
-    const cancelReason = (form.cancel_reason || "").trim();
+    const cancelReason = (form.cancel_reason || form.admin_note || "").trim();
     if (!cancelReason) {
       return renderTicketDetailForContext({
         db,
@@ -299,6 +301,7 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
         responseCode: 422,
         formState: {
           cancel_reason: form.cancel_reason || "",
+          admin_note: form.admin_note || form.cancel_reason || "",
           statusError: "Cancellation reason is required.",
         },
       });
@@ -328,14 +331,6 @@ export async function handleTicketStatusUpdate({ db, request, environment, ticke
           cancelReason,
           nowIso,
         ],
-      );
-      await db.run(
-        [
-          "insert into ticket_comments",
-          "(ticket_id, author_account_id, author_role, comment_text, created_at)",
-          "values (?, ?, 'admin', ?, ?)",
-        ].join(" "),
-        [ticketId, session.accountId, cancelReason, nowIso],
       );
     });
 

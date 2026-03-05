@@ -251,27 +251,157 @@ test("resident ratings summary/detail and admin ratings pages show scoped data",
   );
   assert.equal(adminApartmentRatings.status, 200);
   const adminApartmentHtml = await adminApartmentRatings.text();
+  assert.match(adminApartmentHtml, /<h1>Staff Performance<\/h1>/);
+  assert.match(adminApartmentHtml, /<p class="page-subtitle">Palm Meadows<\/p>/);
+  assert.match(adminApartmentHtml, /Staff Summary/);
   assert.match(adminApartmentHtml, /Excellent work in PM\./);
+  assert.match(adminApartmentHtml, new RegExp(`href="/tickets/${palmTicketId}"`));
   assert.doesNotMatch(adminApartmentHtml, /Needs improvement in LV\./);
+  assert.doesNotMatch(adminApartmentHtml, /Track apartment and optional platform-wide staff ratings\./i);
+  assert.doesNotMatch(adminApartmentHtml, /Apartment:\s*Palm Meadows/i);
+  assert.doesNotMatch(adminApartmentHtml, /View Controls/i);
+  assert.doesNotMatch(adminApartmentHtml, /Show Platform-Wide Ratings/i);
+  assert.doesNotMatch(adminApartmentHtml, /Sort Staff By/i);
+  assert.doesNotMatch(adminApartmentHtml, /<label[^>]*>\s*Order\s*<\/label>/i);
+  assert.doesNotMatch(adminApartmentHtml, /View all staff/i);
   assert.doesNotMatch(adminApartmentHtml, /Platform Average Rating/i);
   assert.doesNotMatch(adminApartmentHtml, /Great work in LV\./);
 
-  const adminPlatformToggle = await fixture.app.fetch(
-    new Request("http://helpdesk.local/admin/staff?show_platform=1", {
+  fixture.close();
+  fixtureDb.cleanup();
+});
+
+test("admin staff summary shows latest 3 linked staff and exposes paginated all-staff page", async () => {
+  const fixtureDb = createFixtureDb();
+  const db = new DatabaseSync(fixtureDb.sqlitePath);
+  const passwordHashRow = db.prepare("select password_hash from accounts where username = ?").get("admin_pm");
+  const passwordHash = passwordHashRow.password_hash;
+
+  for (let index = 0; index < 6; index += 1) {
+    const username = `staff_pm_extra_${index + 1}`;
+    const accountInsert = db.prepare(
+      "insert into accounts (username, password_hash, role, is_active, created_at, updated_at) values (?, ?, 'staff', 1, ?, ?)",
+    );
+    const createdAt = hoursAgoIso(10 - index);
+    accountInsert.run(username, passwordHash, createdAt, createdAt);
+
+    const accountId = db.prepare("select id from accounts where username = ?").get(username).id;
+    db.prepare(
+      "insert into staff (account_id, full_name, mobile_number, staff_type, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
+    ).run(
+      accountId,
+      `Palm Extra Staff ${index + 1}`,
+      `700000000${index}`,
+      index % 2 === 0 ? "electrician" : "plumber",
+      createdAt,
+      createdAt,
+    );
+    db.prepare(
+      "insert into staff_apartment_links (staff_account_id, apartment_id, is_active, linked_at, unlinked_at) values (?, ?, 1, ?, null)",
+    ).run(accountId, fixtureDb.apartmentPalmId, hoursAgoIso(6 - index));
+  }
+  db.close();
+
+  const fixture = createFixtureApp(fixtureDb.sqlitePath);
+  const adminPalm = await loginAndSession(fixture.app, "admin_pm", "/admin");
+
+  const summaryResponse = await fixture.app.fetch(
+    new Request("http://helpdesk.local/admin/staff", {
       headers: { cookie: adminPalm.cookiePair },
     }),
   );
-  assert.equal(adminPlatformToggle.status, 200);
-  const adminPlatformHtml = await adminPlatformToggle.text();
-  assert.match(adminPlatformHtml, /Electric Staff One/);
-  assert.doesNotMatch(adminPlatformHtml, /Electric Staff Two/);
-  assert.match(adminPlatformHtml, /Apartment Average Rating/i);
-  assert.match(adminPlatformHtml, /Platform Average Rating/i);
-  assert.match(adminPlatformHtml, /Apartment Rating Count/i);
-  assert.match(adminPlatformHtml, /Platform Rating Count/i);
-  assert.match(adminPlatformHtml, /Excellent work in PM\./);
-  assert.doesNotMatch(adminPlatformHtml, /Needs improvement in LV\./);
-  assert.doesNotMatch(adminPlatformHtml, /Great work in LV\./);
+  assert.equal(summaryResponse.status, 200);
+  const summaryHtml = await summaryResponse.text();
+  assert.match(summaryHtml, /View all staff/i);
+  assert.match(summaryHtml, /href="\/admin\/staff\/all"/);
+  assert.match(summaryHtml, /Palm Extra Staff 6/);
+  assert.match(summaryHtml, /Electric Staff One/);
+  assert.match(summaryHtml, /Plumber Staff One/);
+  assert.doesNotMatch(summaryHtml, /Palm Extra Staff 5/);
+  assert.doesNotMatch(summaryHtml, /Palm Extra Staff 4/);
+  assert.doesNotMatch(summaryHtml, /Palm Extra Staff 3/);
+  assert.doesNotMatch(summaryHtml, /Palm Extra Staff 2/);
+  assert.doesNotMatch(summaryHtml, /Palm Extra Staff 1/);
+
+  const allStaffResponse = await fixture.app.fetch(
+    new Request("http://helpdesk.local/admin/staff/all", {
+      headers: { cookie: adminPalm.cookiePair },
+    }),
+  );
+  assert.equal(allStaffResponse.status, 200);
+  const allStaffHtml = await allStaffResponse.text();
+  assert.match(allStaffHtml, /<h1>All Apartment Staff<\/h1>/);
+  assert.match(allStaffHtml, /Apartment-specific ratings for Palm Meadows/i);
+  assert.doesNotMatch(allStaffHtml, /<h2>Staff List<\/h2>/i);
+  assert.doesNotMatch(allStaffHtml, /Showing 1-8 of 8 staff/i);
+  assert.match(allStaffHtml, /Show Platform-Wide Ratings/i);
+  assert.match(allStaffHtml, /Apartment Rating Count/i);
+  assert.match(allStaffHtml, /Apartment Average Rating/i);
+  assert.doesNotMatch(allStaffHtml, /Platform Rating Count/i);
+  assert.doesNotMatch(allStaffHtml, /Platform Average Rating/i);
+  assert.match(allStaffHtml, /Palm Extra Staff 6/);
+  assert.match(allStaffHtml, /Palm Extra Staff 5/);
+  assert.match(allStaffHtml, /Palm Extra Staff 4/);
+  assert.match(allStaffHtml, /Palm Extra Staff 3/);
+  assert.match(allStaffHtml, /Palm Extra Staff 2/);
+  assert.match(allStaffHtml, /Palm Extra Staff 1/);
+  assert.match(allStaffHtml, /Plumber Staff One/);
+  assert.match(allStaffHtml, /Electric Staff One/);
+
+  const allStaffPlatformResponse = await fixture.app.fetch(
+    new Request("http://helpdesk.local/admin/staff/all?show_platform=1", {
+      headers: { cookie: adminPalm.cookiePair },
+    }),
+  );
+  assert.equal(allStaffPlatformResponse.status, 200);
+  const allStaffPlatformHtml = await allStaffPlatformResponse.text();
+  assert.match(allStaffPlatformHtml, /Platform Rating Count/i);
+  assert.match(allStaffPlatformHtml, /Platform Average Rating/i);
+
+  fixture.close();
+  fixtureDb.cleanup();
+});
+
+test("admin all-staff page shows pagination only when linked staff count exceeds page size", async () => {
+  const fixtureDb = createFixtureDb();
+  const db = new DatabaseSync(fixtureDb.sqlitePath);
+  const passwordHashRow = db.prepare("select password_hash from accounts where username = ?").get("admin_pm");
+  const passwordHash = passwordHashRow.password_hash;
+
+  for (let index = 0; index < 7; index += 1) {
+    const username = `staff_pm_plus_${index + 1}`;
+    const createdAt = hoursAgoIso(8 - index);
+    db.prepare(
+      "insert into accounts (username, password_hash, role, is_active, created_at, updated_at) values (?, ?, 'staff', 1, ?, ?)",
+    ).run(username, passwordHash, createdAt, createdAt);
+    const accountId = db.prepare("select id from accounts where username = ?").get(username).id;
+    db.prepare(
+      "insert into staff (account_id, full_name, mobile_number, staff_type, created_at, updated_at) values (?, ?, ?, ?, ?, ?)",
+    ).run(
+      accountId,
+      `Palm More Staff ${index + 1}`,
+      `711111111${index}`,
+      index % 2 === 0 ? "electrician" : "plumber",
+      createdAt,
+      createdAt,
+    );
+    db.prepare(
+      "insert into staff_apartment_links (staff_account_id, apartment_id, is_active, linked_at, unlinked_at) values (?, ?, 1, ?, null)",
+    ).run(accountId, fixtureDb.apartmentPalmId, hoursAgoIso(5 - index));
+  }
+  db.close();
+
+  const fixture = createFixtureApp(fixtureDb.sqlitePath);
+  const adminPalm = await loginAndSession(fixture.app, "admin_pm", "/admin");
+  const allStaffResponse = await fixture.app.fetch(
+    new Request("http://helpdesk.local/admin/staff/all", {
+      headers: { cookie: adminPalm.cookiePair },
+    }),
+  );
+  assert.equal(allStaffResponse.status, 200);
+  const allStaffHtml = await allStaffResponse.text();
+  assert.match(allStaffHtml, /Showing 1-8 of 9 staff/i);
+  assert.match(allStaffHtml, /Next →/);
 
   fixture.close();
   fixtureDb.cleanup();
