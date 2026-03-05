@@ -65,6 +65,7 @@
 - `progress line`: short lifecycle tracker with clear current-step emphasis.
 - `activity timeline`: chronological feed that can mix system events and human comments.
 - `rating control`: tap-friendly 1-5 pill radios (not dropdown), with clear selected state and endpoint hints (`Poor`, `Excellent`).
+- `pagination row`: compact count + previous/next controls for long lists; keep touch targets clear and avoid infinite scroll for core ticket/review lists.
 - `status-chip` variants:
   - `open`
   - `assigned`
@@ -82,6 +83,7 @@
 - Put primary context first, actions later. On detail pages, forms should usually come after history/context.
 - Do not duplicate the same information in multiple adjacent blocks (for example, same status shown repeatedly).
 - When rating is required by workflow, enforce it in both UI affordance and server-side validation.
+- Use predictable page sizes on mobile list views to keep load/render stable; show visible list position context (`Showing X-Y of Z`).
 
 ## Detail Screen Structure
 
@@ -89,9 +91,10 @@
 - Header: progress + primary title.
 - Freshness metadata: prioritize `Updated` over less critical fields.
 - Core content block: main description/details in readable full-width text.
-- Ownership/assignee block: compact, actionable contact details.
+- Context blocks: keep resident/request context and assignee/contact details in compact cards without duplicating the same metadata in multiple places.
 - Unified activity history: single chronological stream for events and comments.
-- Action section at the bottom: compose/update controls after context.
+- Action section: role-specific update controls appear after timeline/context.
+- Add-comment composer should be the final block on the page and should be hidden when comments are not allowed.
 
 ## Activity Feed Patterns
 
@@ -100,6 +103,13 @@
 - Keep timestamp placement consistent across entry types for quick scanning.
 - Human actions and system actions should have distinct but calm visual language.
 - Chronological ordering of timeline entries is a cross-role invariant and should remain consistent for resident, admin, and staff views.
+
+## Queue and Listing Patterns
+
+- For long ticket/review lists, use explicit pagination with visible position context (`Showing X-Y of Z`) and clear previous/next actions.
+- Admin home queue is currently unfiltered for faster mobile scanning; prioritize clear card hierarchy and lightweight inline action/aging signals over heavy controls.
+- On admin ticket cards, keep aging/action pills inline with the subtitle row, right-aligned, and allow subtitle truncation to preserve pill visibility.
+- Keep ticket row hierarchy consistent across roles: identity/status first line, title as dominant line, compact metadata chips below.
 
 ## Performance Rules
 

@@ -7,6 +7,7 @@
 - Confirm unclear requirements before coding when asked to pause.
 - Keep responses concise and direct; avoid fluff.
 - When there is a spec conflict, treat `tech_spec.md` as source of truth.
+- When working on more than 2 tasks in one request, create a todo list and keep it updated as items are completed.
 
 ## Delivery Workflow
 - Use strict TDD: write failing tests first, implement minimal code, then refactor.

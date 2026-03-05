@@ -80,7 +80,19 @@ async function countResidentActiveTickets(db, residentAccountId) {
   return Number(row?.count ?? 0);
 }
 
-async function listResidentTickets(db, residentAccountId, limit = 50) {
+async function countResidentTickets(db, residentAccountId) {
+  const row = await db.get(
+    [
+      "select count(*) as count",
+      "from tickets",
+      "where resident_account_id = ?",
+    ].join(" "),
+    [residentAccountId],
+  );
+  return Number(row?.count ?? 0);
+}
+
+async function listResidentTickets(db, residentAccountId, { limit = 50, offset = 0 } = {}) {
   return db.all(
     [
       "select t.id, t.ticket_number, t.issue_type, t.title, t.status, t.updated_at,",
@@ -94,13 +106,13 @@ async function listResidentTickets(db, residentAccountId, limit = 50) {
       "left join staff s on s.account_id = t.assigned_staff_account_id",
       "where t.resident_account_id = ?",
       "order by datetime(t.created_at) desc, t.id desc",
-      "limit ?",
+      "limit ? offset ?",
     ].join(" "),
-    [residentAccountId, limit],
+    [residentAccountId, limit, offset],
   );
 }
 
-function buildAdminQueueWhereClause(apartmentId, filters) {
+function buildAdminQueueWhereClause(apartmentId, filters = {}) {
   const clauses = ["t.apartment_id = ?"];
   const params = [apartmentId];
 
@@ -117,6 +129,11 @@ function buildAdminQueueWhereClause(apartmentId, filters) {
   } else if (filters.assignedStaff) {
     clauses.push("t.assigned_staff_account_id = ?");
     params.push(Number.parseInt(filters.assignedStaff, 10));
+  }
+  if (filters.needsReview) {
+    clauses.push(
+      "t.status = 'completed' and not exists (select 1 from ticket_reviews tr where tr.ticket_id = t.id)",
+    );
   }
 
   return {
@@ -145,6 +162,11 @@ async function listAdminApartmentTickets(db, apartmentId, filters, page, pageSiz
   return db.all(
     [
       "select t.id, t.ticket_number, t.issue_type, t.title, t.status, t.created_at, t.updated_at, t.in_progress_at,",
+      "case",
+      "  when t.status = 'completed' and not exists (select 1 from ticket_reviews tr where tr.ticket_id = t.id)",
+      "  then 1",
+      "  else 0",
+      "end as needs_review,",
       "t.assigned_staff_account_id, r.flat_number as resident_flat_number, r.full_name as resident_name,",
       "s.full_name as assigned_staff_name",
       "from tickets t",
@@ -350,7 +372,7 @@ async function listApartmentLinkedStaffRatings(db, apartmentId) {
   );
 }
 
-async function listApartmentReviewTexts(db, apartmentId, limit = 50) {
+async function listApartmentReviewTexts(db, apartmentId, { limit = 50, offset = 0 } = {}) {
   return db.all(
     [
       "select tr.ticket_id, tr.staff_account_id, st.full_name as staff_name, tr.rating, tr.review_text, tr.created_at, tk.ticket_number",
@@ -360,10 +382,25 @@ async function listApartmentReviewTexts(db, apartmentId, limit = 50) {
       "join staff_apartment_links sal on sal.staff_account_id = tr.staff_account_id and sal.apartment_id = ? and sal.is_active = 1",
       "where tr.review_text is not null and length(trim(tr.review_text)) > 0",
       "order by tr.created_at desc, tr.id desc",
-      "limit ?",
+      "limit ? offset ?",
     ].join(" "),
-    [apartmentId, apartmentId, limit],
+    [apartmentId, apartmentId, limit, offset],
   );
+}
+
+async function countApartmentReviewTexts(db, apartmentId) {
+  const row = await db.get(
+    [
+      "select count(*) as total",
+      "from ticket_reviews tr",
+      "join tickets tk on tk.id = tr.ticket_id and tk.apartment_id = ?",
+      "join staff_apartment_links sal on sal.staff_account_id = tr.staff_account_id and sal.apartment_id = ? and sal.is_active = 1",
+      "where tr.review_text is not null and length(trim(tr.review_text)) > 0",
+      "limit 1",
+    ].join(" "),
+    [apartmentId, apartmentId],
+  );
+  return Number(row?.total || 0);
 }
 
 async function listApartmentReviewTextsByStaff(db, apartmentId, staffAccountId, { limit = 10, offset = 0 } = {}) {
@@ -498,6 +535,7 @@ export {
   getStaffProfile,
   listStaffLinkedApartments,
   countResidentActiveTickets,
+  countResidentTickets,
   listResidentTickets,
   countAdminApartmentTickets,
   listAdminApartmentTickets,
@@ -514,6 +552,7 @@ export {
   hasActiveStaffApartmentLink,
   listApartmentLinkedStaffRatings,
   listApartmentReviewTexts,
+  countApartmentReviewTexts,
   listApartmentReviewTextsByStaff,
   countApartmentReviewTextsByStaff,
   listPlatformStaffRatingsByAccountIds,

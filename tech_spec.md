@@ -564,10 +564,11 @@ Error response policy:
 
 ### 9.2 Admin Flows
 1. Login redirects to `/admin`.
-2. Admin home includes KPI cards, aging highlights, and ticket queue with filters.
-3. Admin ticket detail allows assign/reassign and comments while ticket active.
-4. Admin can close duplicate/invalid tickets by comment + complete action with reason.
+2. Admin home includes KPI cards, aging highlights, and an unfiltered apartment ticket queue with pagination.
+3. Admin ticket detail follows shared detail structure (progress, title-first header, unified timeline of events+comments).
+4. Admin ticket detail allows assign/reassign and cancellation-complete action with reason; add-comment is available only while ticket is active.
 5. `/admin/staff` defaults to apartment-specific metrics; platform-wide toggle adds count/avg columns only.
+6. `/admin/staff` supports staff sorting controls and paginated recent text reviews.
 
 ### 9.3 Staff Flows
 1. Login redirects to `/staff`.
@@ -598,19 +599,16 @@ Forbidden transitions:
 ## 10. UI/UX and Accessibility Requirements
 ### 10.1 Mobile-First Layout Rules
 1. Base width support: 320px.
-2. Centered single-column container with max width 480px.
+2. Centered single-column container with max width 560px.
 3. No horizontal scroll in primary flows.
 4. Large form controls and tap targets.
 5. No hover-only controls.
 
 ### 10.2 Navigation Standards
 1. Every page must include explicit destination links at top.
-2. Generic `Back` labels are not allowed; labels should still include destination context.
-3. Resident account/create/rating pages use compact destination pills (`← Home`, `← Ratings`) to preserve mobile space.
-4. Ticket detail back link text remains role-specific:
-- Resident: `<- Resident Home (All Tickets)`
-- Admin: `<- Admin Home (All Tickets)`
-- Staff: `<- Staff Home (Assigned Tickets)`
+2. Mobile-first navigation should prefer compact pill links for high-frequency destinations (`← Home`, `← Ratings`).
+3. Ticket detail top nav uses: back pill on left, contextual ticket identifier centered, low-priority type/state pill on right.
+4. Avoid mixing old ASCII arrows (`<-`) with unicode arrows (`←`); standardize on unicode.
 5. Error pages must include role-aware home link and retry option for `500`.
 
 ### 10.3 Progressive Enhancement Rules

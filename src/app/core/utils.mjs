@@ -127,7 +127,7 @@ function doc(title, body) {
     ".top-nav .nav-link-right { margin-left: auto; }",
     ".top-nav .nav-ticket-center { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; }",
     ".top-nav .nav-meta { color: var(--text-muted); font-size: 0.75rem; }",
-    "@media (max-width: 340px) { .top-nav .nav-ticket-center { position: static; transform: none; order: 3; flex-basis: 100%; text-align: center; } }",
+    "@media (max-width: 420px) { .top-nav .nav-ticket-center { position: static; transform: none; order: 3; flex-basis: 100%; text-align: center; } }",
     ".page-header { margin-bottom: 14px; }",
     ".resident-home-header { text-align: center; }",
     ".resident-home-header h1 { font-family: var(--font-ui); font-size: 2.25rem; line-height: 1.06; letter-spacing: 0.02em; }",
@@ -202,6 +202,27 @@ function doc(title, body) {
     ".action-form { margin: 12px 0 0; }",
     ".action-form.sticky-cta { position: sticky; bottom: 10px; background: var(--bg-surface); padding-top: 8px; }",
     ".inline-form { margin: 0; }",
+    ".admin-filter-form { display: grid; }",
+    ".admin-filter-form label { margin-top: 8px; }",
+    ".admin-filter-form .wide-button { margin-top: 10px; }",
+    ".ticket-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }",
+    ".ticket-summary-stat { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px; background: var(--bg-surface); position: relative; overflow: hidden; }",
+    ".ticket-summary-stat::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: #cbd5e1; }",
+    ".ticket-summary-stat--open::before { background: #64748b; }",
+    ".ticket-summary-stat--assigned::before { background: #0891b2; }",
+    ".ticket-summary-stat--in-progress::before { background: #0b7285; }",
+    ".ticket-summary-label { margin: 0; color: var(--text-muted); font-size: 0.75rem; letter-spacing: 0.01em; }",
+    ".ticket-summary-value { margin: 4px 0 0; font-family: var(--font-data); font-size: 1.25rem; line-height: 1; font-weight: 700; color: var(--text-primary); }",
+    ".ticket-summary-aging { margin-top: 10px; }",
+    ".ticket-summary-aging-row { margin: 0; display: flex; align-items: center; gap: 8px; justify-content: space-between; font-size: 0.8125rem; }",
+    ".ticket-summary-aging-row + .ticket-summary-aging-row { margin-top: 6px; }",
+    ".ticket-summary-aging-row strong { font-family: var(--font-data); font-size: 0.875rem; color: #854d0e; background: #fef9c3; border: 1px solid #facc15; border-radius: 999px; padding: 1px 7px; }",
+    ".admin-ticket-priority-row { margin: 7px 0 4px; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }",
+    ".admin-ticket-flat { font-size: 1.22rem; line-height: 1.2; font-weight: 700; color: var(--text-primary); }",
+    ".admin-ticket-issue { font-size: 0.78rem; line-height: 1.2; font-weight: 700; color: #0b4e58; background: #e6f4f7; border: 1px solid #b9dde3; border-radius: 999px; padding: 2px 8px; white-space: nowrap; }",
+    ".admin-ticket-subtitle-row { margin: 0; display: flex; align-items: center; gap: 6px; min-width: 0; }",
+    ".admin-ticket-subtitle { margin: 0; min-width: 0; flex: 1; color: var(--text-muted); font-size: 0.82rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }",
+    ".admin-ticket-inline-badges { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }",
     ".form-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }",
     ".button-link { min-height: 44px; border: 1px solid var(--border-subtle); border-radius: 8px; background: #f8fafc; color: #334155; font: inherit; font-weight: 600; padding: 10px 12px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }",
     ".button-link-full { width: 100%; }",
@@ -243,7 +264,7 @@ function doc(title, body) {
     ".ticket-item--completed::before { background: #16a34a; }",
     ".ticket-row-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }",
     ".ticket-row-head h3 { margin: 0; font-size: 0.6875rem; }",
-    ".ticket-row-head--resident { position: relative; }",
+    ".ticket-row-head--resident, .ticket-row-head--has-center-chip { position: relative; }",
     ".ticket-row-review-chip { position: absolute; left: 50%; transform: translateX(-50%); top: 0; display: inline-flex; align-items: center; min-height: 20px; padding: 1px 8px; border-radius: 999px; border: 1px solid #fed7aa; background: #fff7ed; color: #9a3412; font-size: 0.7rem; line-height: 1.1; font-weight: 600; white-space: nowrap; }",
     ".ticket-item-link { display: block; margin: -10px -11px; padding: 10px 11px 10px 14px; color: inherit; text-decoration: none; border-radius: 10px; }",
     ".ticket-item-link:hover { background: #f8fbfc; }",
@@ -545,13 +566,14 @@ function pageWithLogout({
       "</form>",
     ].join("")
     : "";
+  const hasSubtitle = typeof welcomeText === "string" && welcomeText.trim().length > 0;
   return doc(
     title,
     [
       navWithLogout({ csrfToken, links }),
       `<header class="page-header${headerClass ? ` ${htmlEscape(headerClass)}` : ""}">`,
       `<h1>${htmlEscape(title)}</h1>`,
-      `<p class="page-subtitle">${htmlEscape(welcomeText)}</p>`,
+      hasSubtitle ? `<p class="page-subtitle">${htmlEscape(welcomeText)}</p>` : "",
       "</header>",
       detailsHtml,
       actionHtml,
@@ -656,6 +678,7 @@ function parseAdminQueueFilters(url) {
   const statusRaw = (url.searchParams.get("status") || "").trim().toLowerCase();
   const issueTypeRaw = (url.searchParams.get("issue_type") || "").trim().toLowerCase();
   const assignedStaffRaw = (url.searchParams.get("assigned_staff") || "").trim().toLowerCase();
+  const needsReviewRaw = (url.searchParams.get("needs_review") || "").trim().toLowerCase();
 
   const status = ["open", "assigned", "in_progress", "completed"].includes(statusRaw) ? statusRaw : "";
   const issueType = ["electrical", "plumbing"].includes(issueTypeRaw) ? issueTypeRaw : "";
@@ -680,6 +703,7 @@ function parseAdminQueueFilters(url) {
     status,
     issueType,
     assignedStaff,
+    needsReview: needsReviewRaw === "1" || needsReviewRaw === "true",
     page,
     pageSize,
   };

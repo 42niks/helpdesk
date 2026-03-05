@@ -142,26 +142,6 @@ function metaChip(text, variant = "") {
   return `<span class="ticket-meta-chip${classSuffix}">${htmlEscape(text)}</span>`;
 }
 
-function kvGrid(rows) {
-  return [
-    '<div class="resident-meta kv-grid">',
-    rows
-      .map(([label, value]) => `<p><strong>${htmlEscape(label)}</strong> ${htmlEscape(value)}</p>`)
-      .join(""),
-    "</div>",
-  ].join("");
-}
-
-function kvGridHtml(rows) {
-  return [
-    '<div class="resident-meta kv-grid">',
-    rows
-      .map(([label, valueHtml]) => `<p><strong>${htmlEscape(label)}</strong> ${valueHtml}</p>`)
-      .join(""),
-    "</div>",
-  ].join("");
-}
-
 function ticketLifecycleProgress(status) {
   const orderedStatuses = ["open", "assigned", "in_progress", "completed"];
   const activeIndex = Math.max(0, orderedStatuses.indexOf(status));
@@ -231,24 +211,28 @@ function adminTicketListHtml(tickets, nowMillis = Date.now()) {
     '<ul class="ticket-list">',
     tickets
       .map((ticket) => {
-        const assignedLabel = ticket.assigned_staff_name || "Unassigned";
         const agingBadge = ticketAgingBadge(ticket, nowMillis);
-        const updatedLabel = relativeUpdatedLabel(ticket.updated_at, nowMillis);
+        const actionChip = ticket.status === "open"
+          ? '<span class="ticket-row-review-chip">Assign now</span>'
+          : "";
+        const inlineBadges = agingBadge
+          ? `<span class="admin-ticket-inline-badges">${metaChip(agingBadge, "aging")}</span>`
+          : "";
         return [
           `<li class="ticket-item ticket-item--${htmlEscape(ticket.status)}">`,
           `<a class="ticket-item-link" href="/tickets/${ticket.id}">`,
-          '<div class="ticket-row-head">',
+          `<div class="ticket-row-head${actionChip ? " ticket-row-head--has-center-chip" : ""}">`,
           `<h3><span class="ticket-number-link">${htmlEscape(ticket.ticket_number)}</span></h3>`,
+          actionChip,
           statusChip(ticket.status),
           "</div>",
-          `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
-          '<p class="ticket-row-meta-chips">',
-          metaChip(`Flat ${ticket.resident_flat_number}`, "flat"),
-          metaChip(ticket.resident_name, "resident"),
-          metaChip(issueTypeLabel(ticket.issue_type), "issue"),
-          metaChip(assignedLabel, "assignee"),
-          metaChip(updatedLabel, "updated"),
-          agingBadge ? metaChip(agingBadge, "aging") : "",
+          '<p class="admin-ticket-priority-row">',
+          `<span class="admin-ticket-flat">${htmlEscape(ticket.resident_flat_number)}</span>`,
+          `<span class="admin-ticket-issue">${htmlEscape(issueTypeLabel(ticket.issue_type))}</span>`,
+          "</p>",
+          '<p class="admin-ticket-subtitle-row">',
+          `<span class="admin-ticket-subtitle">${htmlEscape(ticket.title)}</span>`,
+          inlineBadges,
           "</p>",
           "</a>",
           "</li>",
@@ -388,6 +372,45 @@ function ticketEventSummary(event) {
   return "Ticket updated";
 }
 
+function renderUnifiedTimeline(events, comments) {
+  const timelineEntries = mergeResidentTimelineEntries(events, comments);
+  if (timelineEntries.length === 0) {
+    return '<p class="empty-state">No timeline activity yet.</p>';
+  }
+  return [
+    '<ul class="timeline">',
+    timelineEntries
+      .map((entry) => {
+        if (entry.kind === "comment") {
+          const comment = entry.comment;
+          return [
+            '<li class="timeline-item timeline-item--comment">',
+            '<p class="meta-row timeline-item-head">',
+            '<span class="timeline-type timeline-type--comment">👤 Comment</span>',
+            `<span class="timeline-item-title">${htmlEscape(commentAuthorLabel(comment.author_role))}</span>`,
+            "</p>",
+            `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
+            `<p class="small">${htmlEscape(formatDetailDateTime(comment.created_at))}</p>`,
+            "</li>",
+          ].join("");
+        }
+        const event = entry.event;
+        return [
+          '<li class="timeline-item timeline-item--event">',
+          '<p class="meta-row timeline-item-head">',
+          '<span class="timeline-type timeline-type--event">⚙︎ Event</span>',
+          `<span class="timeline-item-title">${htmlEscape(ticketEventSummary(event))}</span>`,
+          "</p>",
+          event.note_text ? `<p class="meta-row">${htmlEscape(event.note_text)}</p>` : "",
+          `<p class="small">${htmlEscape(formatDetailDateTime(event.created_at))}</p>`,
+          "</li>",
+        ].join("");
+      })
+      .join(""),
+    "</ul>",
+  ].join("");
+}
+
 function renderSubmittedReviewBlock({ review, ticket }) {
   if (!review) {
     return "";
@@ -494,41 +517,7 @@ function residentTicketDetailPage({
       '<p class="empty-state">Not assigned yet. You can add a comment for priority context.</p>',
       "</section>",
     ].join("");
-  const timelineEntries = mergeResidentTimelineEntries(events, comments);
-  const eventsHtml = timelineEntries.length
-    ? [
-      '<ul class="timeline">',
-      timelineEntries
-        .map((entry) => {
-          if (entry.kind === "comment") {
-            const comment = entry.comment;
-            return [
-              '<li class="timeline-item timeline-item--comment">',
-              '<p class="meta-row timeline-item-head">',
-              '<span class="timeline-type timeline-type--comment">👤 Comment</span>',
-              `<span class="timeline-item-title">${htmlEscape(commentAuthorLabel(comment.author_role))}</span>`,
-              "</p>",
-              `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
-              `<p class="small">${htmlEscape(formatDetailDateTime(comment.created_at))}</p>`,
-              "</li>",
-            ].join("");
-          }
-          const event = entry.event;
-          return [
-            '<li class="timeline-item timeline-item--event">',
-            '<p class="meta-row timeline-item-head">',
-            '<span class="timeline-type timeline-type--event">⚙︎ Event</span>',
-            `<span class="timeline-item-title">${htmlEscape(ticketEventSummary(event))}</span>`,
-            "</p>",
-            event.note_text ? `<p class="meta-row">${htmlEscape(event.note_text)}</p>` : "",
-            `<p class="small">${htmlEscape(formatDetailDateTime(event.created_at))}</p>`,
-            "</li>",
-          ].join("");
-        })
-        .join(""),
-      "</ul>",
-    ].join("")
-    : '<p class="empty-state">No timeline activity yet.</p>';
+  const eventsHtml = renderUnifiedTimeline(events, comments);
   const commentFormHtml = ticket.status === "completed"
     ? ""
     : [
@@ -666,69 +655,12 @@ function residentPlaceholderPage({
 
 function roleTicketBackLink(role) {
   if (role === "admin") {
-    return { href: "/admin", label: "<- Admin Home (All Tickets)" };
+    return { href: "/admin", label: "← Home", className: "nav-home-pill" };
   }
   if (role === "staff") {
-    return { href: "/staff", label: "<- Staff Home (Assigned Tickets)" };
+    return { href: "/staff", label: "← Home", className: "nav-home-pill" };
   }
-  return { href: "/resident", label: "← Home" };
-}
-
-function roleSecondaryLinks(role) {
-  if (role === "admin") {
-    return [
-      { href: "/admin/staff", label: "Apartment Staff Performance" },
-      { href: "/admin/account", label: "Profile" },
-    ];
-  }
-  if (role === "staff") {
-    return [{ href: "/staff/account", label: "Profile" }];
-  }
-  return [
-    { href: "/resident/staff-ratings", label: "Resident Staff Ratings" },
-    { href: "/resident/account", label: "Profile" },
-  ];
-}
-
-function renderTimeline(events) {
-  if (events.length === 0) {
-    return '<p class="empty-state">No timeline events yet.</p>';
-  }
-  return [
-    '<ul class="timeline">',
-    events
-      .map((event) =>
-        [
-          '<li class="timeline-item">',
-          `<p class="meta-row"><strong>${htmlEscape(ticketEventSummary(event))}</strong></p>`,
-          event.note_text ? `<p class="meta-row">${htmlEscape(event.note_text)}</p>` : "",
-          `<p class="small">${htmlEscape(formatDetailDateTime(event.created_at))}</p>`,
-          "</li>",
-        ].join(""),
-      )
-      .join(""),
-    "</ul>",
-  ].join("");
-}
-
-function renderComments(comments) {
-  if (comments.length === 0) {
-    return '<p class="empty-state">No comments yet.</p>';
-  }
-  return [
-    '<ul class="comment-list">',
-    comments
-      .map((comment) =>
-        [
-          '<li class="comment-item">',
-          `<p class="comment-head">${htmlEscape(commentAuthorLabel(comment.author_role))} | ${htmlEscape(formatDetailDateTime(comment.created_at))}</p>`,
-          `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
-          "</li>",
-        ].join(""),
-      )
-      .join(""),
-    "</ul>",
-  ].join("");
+  return { href: "/resident", label: "← Home", className: "nav-home-pill" };
 }
 
 function renderCommentForm({ session, ticketId, ticketStatus, values = {}, errors = {}, formError = "" }) {
@@ -758,7 +690,12 @@ function renderCommentForm({ session, ticketId, ticketStatus, values = {}, error
 
 function renderAdminAssignForm({ session, ticket, assignableStaff, selectedStaffId = "", assignError = "" }) {
   if (ticket.status === "completed") {
-    return '<div class="message info">Assignment is closed because ticket is completed.</div>';
+    return [
+      '<article class="resident-meta detail-card">',
+      "<h3>Assignment</h3>",
+      '<p class="empty-state">Assignment is closed because ticket is completed.</p>',
+      "</article>",
+    ].join("");
   }
   const optionsHtml = [
     '<option value="">Select staff member</option>',
@@ -771,7 +708,8 @@ function renderAdminAssignForm({ session, ticket, assignableStaff, selectedStaff
     ? `<div class="message error">${htmlEscape(assignError)}</div>`
     : "";
   return [
-    "<h2>Assign / Reassign</h2>",
+    '<article class="resident-meta detail-card">',
+    "<h3>Assignment</h3>",
     errorHtml,
     '<form method="post" action="/tickets/',
     `${ticket.id}`,
@@ -781,18 +719,25 @@ function renderAdminAssignForm({ session, ticket, assignableStaff, selectedStaff
     `<select id="staff_account_id" name="staff_account_id" required>${optionsHtml}</select>`,
     '<button type="submit" class="wide-button">Save Assignment</button>',
     "</form>",
+    "</article>",
   ].join("");
 }
 
 function renderAdminCompleteForm({ session, ticket, cancelReason = "", statusError = "" }) {
   if (ticket.status === "completed") {
-    return '<div class="message info">Ticket is already completed.</div>';
+    return [
+      '<article class="resident-meta detail-card">',
+      "<h3>Complete as Cancelled/Duplicate</h3>",
+      '<p class="empty-state">Ticket is already completed.</p>',
+      "</article>",
+    ].join("");
   }
   const errorHtml = statusError
     ? `<div class="message error">${htmlEscape(statusError)}</div>`
     : "";
   return [
-    "<h2>Admin Complete (Cancel / Duplicate)</h2>",
+    '<article class="resident-meta detail-card">',
+    "<h3>Complete as Cancelled/Duplicate</h3>",
     errorHtml,
     '<form method="post" action="/tickets/',
     `${ticket.id}`,
@@ -801,14 +746,20 @@ function renderAdminCompleteForm({ session, ticket, cancelReason = "", statusErr
     '<input type="hidden" name="next_status" value="completed">',
     '<label for="cancel_reason">Cancellation Reason</label>',
     `<textarea id="cancel_reason" name="cancel_reason" required>${htmlEscape(cancelReason)}</textarea>`,
-    '<button type="submit" class="wide-button">Complete Ticket as Cancelled/Duplicate</button>',
+    '<button type="submit" class="wide-button">Complete as Cancelled/Duplicate</button>',
     "</form>",
+    "</article>",
   ].join("");
 }
 
 function renderStaffStatusForm({ session, ticket, nextStatus = "", statusError = "" }) {
   if (ticket.status === "completed") {
-    return '<div class="message info">Ticket is already completed.</div>';
+    return [
+      '<article class="resident-meta detail-card">',
+      "<h3>Update Status</h3>",
+      '<p class="empty-state">Ticket is already completed.</p>',
+      "</article>",
+    ].join("");
   }
   let availableOptions = [];
   if (ticket.status === "assigned") {
@@ -817,7 +768,12 @@ function renderStaffStatusForm({ session, ticket, nextStatus = "", statusError =
     availableOptions = ["completed"];
   }
   if (availableOptions.length === 0) {
-    return '<div class="message info">No status transition is available.</div>';
+    return [
+      '<article class="resident-meta detail-card">',
+      "<h3>Update Status</h3>",
+      '<p class="empty-state">No status transition is available.</p>',
+      "</article>",
+    ].join("");
   }
   const optionsHtml = availableOptions
     .map((status) => {
@@ -829,7 +785,8 @@ function renderStaffStatusForm({ session, ticket, nextStatus = "", statusError =
     ? `<div class="message error">${htmlEscape(statusError)}</div>`
     : "";
   return [
-    "<h2>Update Status</h2>",
+    '<article class="resident-meta detail-card">',
+    "<h3>Update Status</h3>",
     errorHtml,
     '<form method="post" action="/tickets/',
     `${ticket.id}`,
@@ -839,6 +796,7 @@ function renderStaffStatusForm({ session, ticket, nextStatus = "", statusError =
     `<select id="next_status" name="next_status">${optionsHtml}</select>`,
     '<button type="submit" class="wide-button">Update Status</button>',
     "</form>",
+    "</article>",
   ].join("");
 }
 
@@ -853,20 +811,69 @@ function operatorTicketDetailPage({
   formState = {},
   responseCode = 200,
 }) {
+  const nowMillis = Date.now();
   const backLink = roleTicketBackLink(role);
-  const links = [backLink, ...roleSecondaryLinks(role)];
+  const links = [
+    backLink,
+    { label: ticket.ticket_number, className: "nav-ticket-center nav-meta" },
+    { label: issueTypeLabel(ticket.issue_type), className: "nav-home-pill nav-link-right" },
+  ];
   const submittedReviewHtml = renderSubmittedReviewBlock({ review, ticket });
+  const contextSection = [
+    '<section class="section">',
+    "<h2>Resident</h2>",
+    '<article class="resident-meta detail-card">',
+    '<p class="detail-card-row"><strong>Apartment:</strong> ',
+    `<span class="detail-card-value">${htmlEscape(ticket.apartment_name)}</span>`,
+    "</p>",
+    '<p class="detail-card-row"><strong>Flat:</strong> ',
+    `<span class="detail-card-value">${htmlEscape(ticket.resident_flat_number)}</span>`,
+    "</p>",
+    '<p class="detail-card-row"><strong>Name:</strong> ',
+    `<span class="detail-card-value">${htmlEscape(ticket.resident_name)}</span>`,
+    "</p>",
+    "</article>",
+    "</section>",
+  ].join("");
   const assignedSection = ticket.assigned_staff_name
-    ? [
-      '<section class="section">',
-      "<h2>Assigned Staff</h2>",
-      kvGrid([
-        ["Name:", ticket.assigned_staff_name],
-        ["Type:", staffTypeLabel(ticket.assigned_staff_type)],
-        ["Mobile:", ticket.assigned_staff_mobile_number],
-      ]),
-      "</section>",
-    ].join("")
+    ? (() => {
+      const technicianStatus = ticket.status === "in_progress"
+        ? "On it"
+        : ticket.status === "assigned"
+          ? "Yet to start"
+          : "";
+      const assignedAt = ticket.assigned_at || ticket.updated_at;
+      const assignedAtExact = formatDetailDateTime(assignedAt);
+      const assignedAtAgo = relativeTimeAgo(assignedAt, nowMillis);
+      const phoneNumber = ticket.assigned_staff_mobile_number || "";
+      const phoneHref = phoneNumber
+        ? String(phoneNumber).replace(/[^\d+]/g, "")
+        : "";
+      return [
+        '<section class="section">',
+        "<h2>Assigned Staff</h2>",
+        '<article class="resident-meta detail-card">',
+        '<p class="detail-card-row assigned-tech-name-row"><strong>Name:</strong> ',
+        `<span class="detail-card-value">${htmlEscape(ticket.assigned_staff_name)}</span>`,
+        technicianStatus ? `<span class="assigned-tech-status-text">${htmlEscape(technicianStatus)}</span>` : "",
+        "</p>",
+        '<p class="detail-card-row"><strong>Type:</strong> ',
+        `<span class="detail-card-value">${htmlEscape(staffTypeLabel(ticket.assigned_staff_type))}</span>`,
+        "</p>",
+        '<p class="detail-card-row assigned-tech-assigned-row"><strong>Assigned:</strong> ',
+        `<span class="detail-card-value">${htmlEscape(assignedAtExact)}</span>`,
+        `<span class="assigned-tech-assigned-ago">${htmlEscape(assignedAtAgo)}</span>`,
+        "</p>",
+        '<p class="detail-card-row assigned-tech-contact-row"><strong>Contact:</strong> ',
+        `<span class="detail-card-value">${phoneNumber ? htmlEscape(phoneNumber) : "Not available"}</span>`,
+        phoneHref
+          ? `<a class="assigned-tech-call-button assigned-tech-call-button--icon" href="tel:${htmlEscape(phoneHref)}" aria-label="Call technician">📞</a>`
+          : "",
+        "</p>",
+        "</article>",
+        "</section>",
+      ].join("");
+    })()
     : '<section class="section"><h2>Assigned Staff</h2><p class="empty-state">This ticket is currently unassigned.</p></section>';
   const assignmentHtml = role === "admin"
     ? renderAdminAssignForm({
@@ -890,9 +897,11 @@ function operatorTicketDetailPage({
       nextStatus: formState.next_status || "",
       statusError: formState.statusError || "",
     });
+  const eventsHtml = renderUnifiedTimeline(events, comments);
   const commentSectionHtml = ticket.status === "completed"
     ? ""
     : [
+      '<section class="section">',
       "<h2>Add Comment</h2>",
       renderCommentForm({
         session,
@@ -902,41 +911,39 @@ function operatorTicketDetailPage({
         errors: formState.commentErrors || {},
         formError: formState.commentError || "",
       }),
+      "</section>",
     ].join("");
   return html(
     doc(
-      `Ticket ${ticket.ticket_number}`,
+      ticket.title,
       [
         navWithLogout({ csrfToken: session.csrfToken, links }),
         '<header class="page-header">',
-        `<h1>Ticket ${htmlEscape(ticket.ticket_number)}</h1>`,
-        '<p class="page-subtitle">Review details and act on the next valid workflow step.</p>',
+        ticketLifecycleProgress(ticket.status),
+        `<h1 class="ticket-detail-title">${htmlEscape(ticket.title)}</h1>`,
+        `<p class="ticket-detail-meta">Last Update ${htmlEscape(formatDetailDateTime(ticket.updated_at))} (${htmlEscape(relativeTimeAgo(ticket.updated_at, nowMillis))})</p>`,
         "</header>",
-        kvGrid([
-          ["Apartment:", ticket.apartment_name],
-          ["Flat:", ticket.resident_flat_number],
-          ["Resident:", ticket.resident_name],
-          ["Issue:", issueTypeLabel(ticket.issue_type)],
-          ["Status:", statusLabel(ticket.status)],
-          ["Title:", ticket.title],
-          ["Description:", ticket.description],
-        ]),
-        `<p class="meta-row">${statusChip(ticket.status)}</p>`,
+        contextSection,
+        '<section class="section">',
+        "<h2>Description</h2>",
+        '<article class="resident-meta detail-card">',
+        '<p class="detail-card-row detail-card-row--multiline">',
+        `<span class="detail-card-value">${htmlEscape(ticket.description)}</span>`,
+        "</p>",
+        "</article>",
+        "</section>",
         assignedSection,
         submittedReviewHtml,
         '<section class="section">',
+        "<h2>Timeline</h2>",
+        eventsHtml,
+        "</section>",
+        '<section class="section">',
+        "<h2>Actions</h2>",
         assignmentHtml,
         statusHtml,
+        "</section>",
         commentSectionHtml,
-        "</section>",
-        '<section class="section">',
-        "<h2>Timeline</h2>",
-        renderTimeline(events),
-        "</section>",
-        '<section class="section">',
-        "<h2>Comments</h2>",
-        renderComments(comments),
-        "</section>",
       ].join(""),
     ),
     responseCode,
