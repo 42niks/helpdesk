@@ -42,11 +42,13 @@
 - Mobile baseline target: 320px.
 - Horizontal padding: 14px mobile, 18px at >=480px.
 - Rhythm: 4px spacing grid.
-- Key-value sections use 2-column `dl.kv-grid` and collapse to single column under 360px.
+- Prefer compact vertical rhythm on mobile; avoid stacking multiple large margins in sequence.
+- Use key-value layouts only for truly structured metadata; use full-width blocks for long text content.
 
 ## Navigation and IA
 
-- Top navigation is links-only.
+- Top navigation is lightweight and role-aware.
+- Use left for back navigation, center for low-priority identity/context, right for compact state/type chip.
 - Logout is shown only in account/profile pages:
   - `/resident/account`
   - `/admin/account`
@@ -57,8 +59,10 @@
 
 - `app-shell`: centered content container.
 - `top-nav`: route links for context navigation.
-- `resident-meta kv-grid`: compact key-value blocks.
+- `resident-meta`: compact info card for dense metadata and ownership/contact details.
 - `ticket-item`: dense ticket rows with title, status chip, and compact metadata.
+- `progress line`: short lifecycle tracker with clear current-step emphasis.
+- `activity timeline`: chronological feed that can mix system events and human comments.
 - `status-chip` variants:
   - `open`
   - `assigned`
@@ -73,15 +77,24 @@
 - Strong visible keyboard focus ring.
 - Preserve no-JS functionality for all core flows.
 - Keep forms linear and explicit (label above field).
+- Put primary context first, actions later. On detail pages, forms should usually come after history/context.
+- Do not duplicate the same information in multiple adjacent blocks (for example, same status shown repeatedly).
 
-## Ticket Screen Structure
+## Detail Screen Structure
 
-- Header and ticket identity.
-- Summary key-value block.
-- Assignment block.
-- Action block (assign/status/review/comment form by role/state).
-- Timeline.
-- Comments history.
+- Header: progress + primary title.
+- Freshness metadata: prioritize `Updated` over less critical fields.
+- Core content block: main description/details in readable full-width text.
+- Ownership/assignee block: compact, actionable contact details.
+- Unified activity history: single chronological stream for events and comments.
+- Action section at the bottom: compose/update controls after context.
+
+## Activity Feed Patterns
+
+- Prefer one timeline over split histories when users need a single source of truth.
+- Differentiate entry types with subtle cues (iconography, dot style, mild tint), not heavy color.
+- Keep timestamp placement consistent across entry types for quick scanning.
+- Human actions and system actions should have distinct but calm visual language.
 
 ## Performance Rules
 
@@ -94,4 +107,5 @@
 
 - Role flows remain intact for resident/admin/staff.
 - Logout remains accessible only from account pages.
-- Ticket lifecycle flows continue to pass E2E tests.
+- Lifecycle transitions and timeline ordering remain correct across states.
+- Mobile layouts remain readable without horizontal overflow at 320px width.

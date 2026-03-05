@@ -44,6 +44,99 @@ function relativeUpdatedLabel(isoValue, nowMillis = Date.now()) {
   return `Updated ${years}y ago`;
 }
 
+function relativeTimeAgo(isoValue, nowMillis = Date.now()) {
+  const parsedMs = Date.parse(isoValue || "");
+  if (!Number.isFinite(parsedMs)) {
+    return "recently";
+  }
+  const deltaMs = Math.max(0, nowMillis - parsedMs);
+  const minutes = Math.floor(deltaMs / 60000);
+  if (minutes < 1) {
+    return "just now";
+  }
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days < 30) {
+    return `${days}d ago`;
+  }
+  const months = Math.floor(days / 30);
+  if (months < 12) {
+    return `${months}mo ago`;
+  }
+  const years = Math.floor(months / 12);
+  return `${years}y ago`;
+}
+
+const DETAIL_DATE_FORMAT = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: true,
+});
+
+function formatDetailDateTime(isoValue) {
+  const parsed = Date.parse(isoValue || "");
+  if (!Number.isFinite(parsed)) {
+    return isoValue || "Unknown";
+  }
+  return DETAIL_DATE_FORMAT.format(new Date(parsed));
+}
+
+function commentAuthorLabel(role) {
+  if (role === "resident") {
+    return "Resident";
+  }
+  if (role === "admin") {
+    return "Apartment Admin";
+  }
+  if (role === "staff") {
+    return "Assigned Staff";
+  }
+  return role || "Unknown";
+}
+
+function mergeResidentTimelineEntries(events, comments) {
+  const combined = [
+    ...events.map((event, index) => ({
+      kind: "event",
+      created_at: event.created_at,
+      index,
+      event,
+    })),
+    ...comments.map((comment, index) => ({
+      kind: "comment",
+      created_at: comment.created_at,
+      index,
+      comment,
+    })),
+  ];
+  combined.sort((a, b) => {
+    const aMs = Date.parse(a.created_at || "");
+    const bMs = Date.parse(b.created_at || "");
+    const aValid = Number.isFinite(aMs);
+    const bValid = Number.isFinite(bMs);
+    if (aValid && bValid && aMs !== bMs) {
+      return aMs - bMs;
+    }
+    if (aValid !== bValid) {
+      return aValid ? -1 : 1;
+    }
+    if (a.kind !== b.kind) {
+      return a.kind === "event" ? -1 : 1;
+    }
+    return a.index - b.index;
+  });
+  return combined;
+}
+
 function metaChip(text, variant = "") {
   const classSuffix = variant ? ` ticket-meta-chip--${variant}` : "";
   return `<span class="ticket-meta-chip${classSuffix}">${htmlEscape(text)}</span>`;
@@ -56,6 +149,41 @@ function kvGrid(rows) {
       .map(([label, value]) => `<p><strong>${htmlEscape(label)}</strong> ${htmlEscape(value)}</p>`)
       .join(""),
     "</div>",
+  ].join("");
+}
+
+function kvGridHtml(rows) {
+  return [
+    '<div class="resident-meta kv-grid">',
+    rows
+      .map(([label, valueHtml]) => `<p><strong>${htmlEscape(label)}</strong> ${valueHtml}</p>`)
+      .join(""),
+    "</div>",
+  ].join("");
+}
+
+function ticketLifecycleProgress(status) {
+  const orderedStatuses = ["open", "assigned", "in_progress", "completed"];
+  const activeIndex = Math.max(0, orderedStatuses.indexOf(status));
+  const labels = orderedStatuses.map((entry) => statusLabel(entry));
+  return [
+    '<ol class="ticket-progress-line" aria-label="Ticket lifecycle progress">',
+    orderedStatuses
+      .map((entry, index) => {
+        const stepClass = index < activeIndex
+          ? "ticket-progress-stop--done"
+          : index === activeIndex
+            ? "ticket-progress-stop--current"
+            : "ticket-progress-stop--pending";
+        return [
+          `<li class="ticket-progress-stop ${stepClass}">`,
+          `<span class="ticket-progress-dot" aria-hidden="true"></span>`,
+          `<span class="ticket-progress-label">${htmlEscape(labels[index])}</span>`,
+          "</li>",
+        ].join("");
+      })
+      .join(""),
+    "</ol>",
   ].join("");
 }
 
@@ -266,7 +394,7 @@ function renderSubmittedReviewBlock({ review, ticket }) {
     kvGrid([
       ["Staff:", review.staff_name || ticket.assigned_staff_name || "Unknown"],
       ["Rating:", ratingLabel(review.rating)],
-      ["Submitted:", review.created_at],
+      ["Submitted:", formatDetailDateTime(review.created_at)],
     ]),
     review.review_text ? `<p class="meta-row"><strong>Review:</strong> ${htmlEscape(review.review_text)}</p>` : "",
     "</section>",
@@ -288,6 +416,7 @@ function residentTicketDetailPage({
   reviewFormError = "",
   responseCode = 200,
 }) {
+  const nowMillis = Date.now();
   const commentText = commentValues.comment_text || "";
   const commentErrorHtml = commentErrors.comment_text
     ? `<p class="field-error">${htmlEscape(commentErrors.comment_text)}</p>`
@@ -307,50 +436,76 @@ function residentTicketDetailPage({
     ? `<div class="message error">${htmlEscape(reviewFormError)}</div>`
     : "";
   const assignedSection = ticket.assigned_staff_name
-    ? [
+    ? (() => {
+      const technicianStatus = ticket.status === "in_progress"
+        ? "On it"
+        : ticket.status === "assigned"
+          ? "Yet to start"
+          : "";
+      const assignedAt = ticket.assigned_at || ticket.updated_at;
+      const assignedAtExact = formatDetailDateTime(assignedAt);
+      const assignedAtAgo = relativeTimeAgo(assignedAt, nowMillis);
+      const phoneNumber = ticket.assigned_staff_mobile_number || "";
+      const phoneHref = phoneNumber
+        ? String(phoneNumber).replace(/[^\d+]/g, "")
+        : "";
+      return [
+        '<section class="section">',
+        "<h2>Assigned Technician</h2>",
+        '<article class="resident-meta assigned-tech-card">',
+        '<p class="assigned-tech-row assigned-tech-name-row"><strong>Name:</strong> ',
+        `<span class="assigned-tech-name-value">${htmlEscape(ticket.assigned_staff_name)}</span>`,
+        technicianStatus ? `<span class="assigned-tech-status-text">${htmlEscape(technicianStatus)}</span>` : "",
+        "</p>",
+        '<p class="assigned-tech-row assigned-tech-assigned-row"><strong>Assigned:</strong> ',
+        `<span class="assigned-tech-assigned-value">${htmlEscape(assignedAtExact)}</span>`,
+        `<span class="assigned-tech-assigned-ago">${htmlEscape(assignedAtAgo)}</span>`,
+        "</p>",
+        '<p class="assigned-tech-row assigned-tech-contact-row"><strong>Contact:</strong> ',
+        `<span class="assigned-tech-contact-value">${phoneNumber ? htmlEscape(phoneNumber) : "Not available"}</span>`,
+        phoneHref
+          ? `<a class="assigned-tech-call-button assigned-tech-call-button--icon" href="tel:${htmlEscape(phoneHref)}" aria-label="Call technician">📞</a>`
+          : "",
+        "</p>",
+        "</article>",
+        "</section>",
+      ].join("");
+    })()
+    : [
       '<section class="section">',
-      "<h2>Assigned Staff</h2>",
-      kvGrid([
-        ["Name:", ticket.assigned_staff_name],
-        ["Type:", staffTypeLabel(ticket.assigned_staff_type)],
-        ["Mobile:", ticket.assigned_staff_mobile_number],
-      ]),
+      "<h2>Assigned Technician</h2>",
+      '<p class="empty-state">Not assigned yet. You can add a comment for priority context.</p>',
       "</section>",
-    ].join("")
-    : '<section class="section"><h2>Assigned Staff</h2><p class="empty-state">This ticket is not assigned yet.</p></section>';
-  const eventsHtml = events.length
+    ].join("");
+  const timelineEntries = mergeResidentTimelineEntries(events, comments);
+  const eventsHtml = timelineEntries.length
     ? [
       '<ul class="timeline">',
-      events
-        .map((event) =>
-          [
-            '<li class="timeline-item">',
-            `<p class="meta-row"><strong>${htmlEscape(ticketEventSummary(event))}</strong></p>`,
+      timelineEntries
+        .map((entry) => {
+          if (entry.kind === "comment") {
+            const comment = entry.comment;
+            return [
+              '<li class="timeline-item timeline-item--comment">',
+              `<p class="meta-row"><strong>👤 ${htmlEscape(commentAuthorLabel(comment.author_role))}</strong></p>`,
+              `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
+              `<p class="small">${htmlEscape(formatDetailDateTime(comment.created_at))}</p>`,
+              "</li>",
+            ].join("");
+          }
+          const event = entry.event;
+          return [
+            '<li class="timeline-item timeline-item--event">',
+            `<p class="meta-row"><strong>⚙︎ ${htmlEscape(ticketEventSummary(event))}</strong></p>`,
             event.note_text ? `<p class="meta-row">${htmlEscape(event.note_text)}</p>` : "",
-            `<p class="small">${htmlEscape(event.created_at)}</p>`,
+            `<p class="small">${htmlEscape(formatDetailDateTime(event.created_at))}</p>`,
             "</li>",
-          ].join(""),
-        )
+          ].join("");
+        })
         .join(""),
       "</ul>",
     ].join("")
-    : '<p class="empty-state">No timeline events yet.</p>';
-  const commentsHtml = comments.length
-    ? [
-      '<ul class="comment-list">',
-      comments
-        .map((comment) =>
-          [
-            '<li class="comment-item">',
-            `<p class="comment-head">${htmlEscape(comment.author_role)} | ${htmlEscape(comment.created_at)}</p>`,
-            `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
-            "</li>",
-          ].join(""),
-        )
-        .join(""),
-      "</ul>",
-    ].join("")
-    : '<p class="empty-state">No comments yet.</p>';
+    : '<p class="empty-state">No timeline activity yet.</p>';
   const commentFormHtml = ticket.status === "completed"
     ? '<div class="message info">Comments are closed because this ticket is completed.</div>'
     : [
@@ -401,45 +556,40 @@ function residentTicketDetailPage({
 
   return html(
     doc(
-      `Ticket ${ticket.ticket_number}`,
+      ticket.title,
       [
         navWithLogout({
           csrfToken: session.csrfToken,
           links: [
-            { href: "/resident", label: "<- Resident Home (All Tickets)" },
-            { href: "/resident/account", label: "Profile" },
+            { href: "/resident", label: "<- Home", className: "nav-home-pill" },
+            { label: ticket.ticket_number, className: "nav-ticket-center nav-meta" },
+            { label: issueTypeLabel(ticket.issue_type), className: "nav-home-pill nav-link-right" },
           ],
         }),
         '<header class="page-header">',
-        `<h1>Ticket ${htmlEscape(ticket.ticket_number)}</h1>`,
-        '<p class="page-subtitle">Track progress and add updates for this request.</p>',
+        ticketLifecycleProgress(ticket.status),
+        `<h1 class="ticket-detail-title">${htmlEscape(ticket.title)}</h1>`,
+        `<p class="ticket-detail-meta">Updated ${htmlEscape(formatDetailDateTime(ticket.updated_at))} (${htmlEscape(relativeTimeAgo(ticket.updated_at, nowMillis))})</p>`,
         "</header>",
-        kvGrid([
-          ["Apartment:", residentProfile.apartment_name],
-          ["Flat:", residentProfile.flat_number],
-          ["Issue:", issueTypeLabel(ticket.issue_type)],
-          ["Status:", statusLabel(ticket.status)],
-          ["Title:", ticket.title],
-          ["Description:", ticket.description],
-          ["Created:", ticket.created_at],
-          ["Updated:", ticket.updated_at],
-        ]),
-        `<p class="meta-row">${statusChip(ticket.status)}</p>`,
+        '<section class="section">',
+        '<div class="detail-stack">',
+        '<article class="resident-meta detail-block">',
+        "<h3>Description</h3>",
+        `<p>${htmlEscape(ticket.description)}</p>`,
+        "</article>",
+        "</div>",
+        "</section>",
         assignedSection,
         submittedReviewHtml,
         reviewSectionHtml,
-        '<section class="section">',
-        "<h2>Add Comment</h2>",
-        commentFormErrorHtml,
-        commentFormHtml,
-        "</section>",
         '<section class="section">',
         "<h2>Timeline</h2>",
         eventsHtml,
         "</section>",
         '<section class="section">',
-        "<h2>Comments</h2>",
-        commentsHtml,
+        "<h2>Add Comment</h2>",
+        commentFormErrorHtml,
+        commentFormHtml,
         "</section>",
       ].join(""),
     ),
@@ -485,7 +635,7 @@ function roleTicketBackLink(role) {
   if (role === "staff") {
     return { href: "/staff", label: "<- Staff Home (Assigned Tickets)" };
   }
-  return { href: "/resident", label: "<- Resident Home (All Tickets)" };
+  return { href: "/resident", label: "← Home" };
 }
 
 function roleSecondaryLinks(role) {
@@ -516,7 +666,7 @@ function renderTimeline(events) {
           '<li class="timeline-item">',
           `<p class="meta-row"><strong>${htmlEscape(ticketEventSummary(event))}</strong></p>`,
           event.note_text ? `<p class="meta-row">${htmlEscape(event.note_text)}</p>` : "",
-          `<p class="small">${htmlEscape(event.created_at)}</p>`,
+          `<p class="small">${htmlEscape(formatDetailDateTime(event.created_at))}</p>`,
           "</li>",
         ].join(""),
       )
@@ -535,7 +685,7 @@ function renderComments(comments) {
       .map((comment) =>
         [
           '<li class="comment-item">',
-          `<p class="comment-head">${htmlEscape(comment.author_role)} | ${htmlEscape(comment.created_at)}</p>`,
+          `<p class="comment-head">${htmlEscape(commentAuthorLabel(comment.author_role))} | ${htmlEscape(formatDetailDateTime(comment.created_at))}</p>`,
           `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
           "</li>",
         ].join(""),

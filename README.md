@@ -30,6 +30,16 @@ The app is split by domain under [`src/app`](/Users/nikhiltr/helpdesk/src/app):
 - Approved exception: login page password visibility toggle (`Show/Hide`) on `/`.
 - Any additional client-side JavaScript requires explicit approval.
 
+## UI/UX Principles
+
+- Mobile-first information hierarchy: primary state and title first, actions later.
+- Avoid duplicate metadata blocks; show only what helps immediate decisions.
+- Prefer one chronological activity timeline over split event/comment histories.
+- Use subtle visual differentiation (icons/tints) for activity types, without heavy emphasis.
+- Keep details compact and actionable (for example, inline contact actions).
+
+See [`uiux_guidelines.md`](/Users/nikhiltr/helpdesk/uiux_guidelines.md) for the complete design rules.
+
 ## Local Development
 
 ```bash
