@@ -197,11 +197,15 @@ function residentTicketListHtml(tickets) {
       .map((ticket) => {
         const assignedLabel = ticket.assigned_staff_name || "Unassigned";
         const updatedLabel = relativeUpdatedLabel(ticket.updated_at);
+        const reviewHeadChip = ticket.needs_review
+          ? '<span class="ticket-row-review-chip">Add your review</span>'
+          : "";
         return [
           `<li class="ticket-item ticket-item--${htmlEscape(ticket.status)}">`,
           `<a class="ticket-item-link" href="/tickets/${ticket.id}">`,
-          '<div class="ticket-row-head">',
+          '<div class="ticket-row-head ticket-row-head--resident">',
           `<h3><span class="ticket-number-link">${htmlEscape(ticket.ticket_number)}</span></h3>`,
+          reviewHeadChip,
           statusChip(ticket.status),
           "</div>",
           `<p class="ticket-row-title">${htmlEscape(ticket.title)}</p>`,
@@ -391,12 +395,25 @@ function renderSubmittedReviewBlock({ review, ticket }) {
   return [
     '<section class="section">',
     "<h2>Submitted Review</h2>",
-    kvGrid([
-      ["Staff:", review.staff_name || ticket.assigned_staff_name || "Unknown"],
-      ["Rating:", ratingLabel(review.rating)],
-      ["Submitted:", formatDetailDateTime(review.created_at)],
-    ]),
-    review.review_text ? `<p class="meta-row"><strong>Review:</strong> ${htmlEscape(review.review_text)}</p>` : "",
+    '<article class="resident-meta detail-card">',
+    '<p class="detail-card-row"><strong>Staff:</strong> ',
+    `<span class="detail-card-value">${htmlEscape(review.staff_name || ticket.assigned_staff_name || "Unknown")}</span>`,
+    "</p>",
+    '<p class="detail-card-row"><strong>Rating:</strong> ',
+    `<span class="detail-card-value">${htmlEscape(ratingLabel(review.rating))}</span>`,
+    "</p>",
+    '<p class="detail-card-row"><strong>Submitted:</strong> ',
+    `<span class="detail-card-value">${htmlEscape(formatDetailDateTime(review.created_at))}</span>`,
+    "</p>",
+    review.review_text
+      ? [
+        '<p class="detail-card-row detail-card-row--multiline">',
+        "<strong>Review:</strong>",
+        `<span class="detail-card-value">${htmlEscape(review.review_text)}</span>`,
+        "</p>",
+      ].join("")
+      : "",
+    "</article>",
     "</section>",
   ].join("");
 }
@@ -452,17 +469,17 @@ function residentTicketDetailPage({
       return [
         '<section class="section">',
         "<h2>Assigned Technician</h2>",
-        '<article class="resident-meta assigned-tech-card">',
-        '<p class="assigned-tech-row assigned-tech-name-row"><strong>Name:</strong> ',
-        `<span class="assigned-tech-name-value">${htmlEscape(ticket.assigned_staff_name)}</span>`,
+        '<article class="resident-meta detail-card">',
+        '<p class="detail-card-row assigned-tech-name-row"><strong>Name:</strong> ',
+        `<span class="detail-card-value">${htmlEscape(ticket.assigned_staff_name)}</span>`,
         technicianStatus ? `<span class="assigned-tech-status-text">${htmlEscape(technicianStatus)}</span>` : "",
         "</p>",
-        '<p class="assigned-tech-row assigned-tech-assigned-row"><strong>Assigned:</strong> ',
-        `<span class="assigned-tech-assigned-value">${htmlEscape(assignedAtExact)}</span>`,
+        '<p class="detail-card-row assigned-tech-assigned-row"><strong>Assigned:</strong> ',
+        `<span class="detail-card-value">${htmlEscape(assignedAtExact)}</span>`,
         `<span class="assigned-tech-assigned-ago">${htmlEscape(assignedAtAgo)}</span>`,
         "</p>",
-        '<p class="assigned-tech-row assigned-tech-contact-row"><strong>Contact:</strong> ',
-        `<span class="assigned-tech-contact-value">${phoneNumber ? htmlEscape(phoneNumber) : "Not available"}</span>`,
+        '<p class="detail-card-row assigned-tech-contact-row"><strong>Contact:</strong> ',
+        `<span class="detail-card-value">${phoneNumber ? htmlEscape(phoneNumber) : "Not available"}</span>`,
         phoneHref
           ? `<a class="assigned-tech-call-button assigned-tech-call-button--icon" href="tel:${htmlEscape(phoneHref)}" aria-label="Call technician">📞</a>`
           : "",
@@ -487,7 +504,10 @@ function residentTicketDetailPage({
             const comment = entry.comment;
             return [
               '<li class="timeline-item timeline-item--comment">',
-              `<p class="meta-row"><strong>👤 ${htmlEscape(commentAuthorLabel(comment.author_role))}</strong></p>`,
+              '<p class="meta-row timeline-item-head">',
+              '<span class="timeline-type timeline-type--comment">👤 Comment</span>',
+              `<span class="timeline-item-title">${htmlEscape(commentAuthorLabel(comment.author_role))}</span>`,
+              "</p>",
               `<p class="comment-body">${htmlEscape(comment.comment_text)}</p>`,
               `<p class="small">${htmlEscape(formatDetailDateTime(comment.created_at))}</p>`,
               "</li>",
@@ -496,7 +516,10 @@ function residentTicketDetailPage({
           const event = entry.event;
           return [
             '<li class="timeline-item timeline-item--event">',
-            `<p class="meta-row"><strong>⚙︎ ${htmlEscape(ticketEventSummary(event))}</strong></p>`,
+            '<p class="meta-row timeline-item-head">',
+            '<span class="timeline-type timeline-type--event">⚙︎ Event</span>',
+            `<span class="timeline-item-title">${htmlEscape(ticketEventSummary(event))}</span>`,
+            "</p>",
             event.note_text ? `<p class="meta-row">${htmlEscape(event.note_text)}</p>` : "",
             `<p class="small">${htmlEscape(formatDetailDateTime(event.created_at))}</p>`,
             "</li>",
@@ -507,7 +530,7 @@ function residentTicketDetailPage({
     ].join("")
     : '<p class="empty-state">No timeline activity yet.</p>';
   const commentFormHtml = ticket.status === "completed"
-    ? '<div class="message info">Comments are closed because this ticket is completed.</div>'
+    ? ""
     : [
       '<form method="post" class="inline-form" action="/tickets/',
       `${ticket.id}`,
@@ -519,18 +542,30 @@ function residentTicketDetailPage({
       '<button type="submit" class="wide-button">Add Comment</button>',
       "</form>",
     ].join("");
+  const commentSectionHtml = ticket.status === "completed"
+    ? ""
+    : [
+      '<section class="section">',
+      "<h2>Add Comment</h2>",
+      commentFormErrorHtml,
+      commentFormHtml,
+      "</section>",
+    ].join("");
   const submittedReviewHtml = renderSubmittedReviewBlock({ review, ticket });
   let reviewSectionHtml = "";
   if (ticket.status === "completed") {
     if (!review && !ticket.assigned_staff_account_id) {
       reviewSectionHtml = '<section class="section"><h2>Review</h2><div class="message info">Review is not available because no staff was assigned.</div></section>';
     } else if (!review) {
-      const ratingOptions = ["", "1", "2", "3", "4", "5"]
-        .map((value) => {
-          if (value === "") {
-            return `<option value=""${reviewRatingValue === "" ? " selected" : ""}>No rating</option>`;
-          }
-          return `<option value="${value}"${String(reviewRatingValue) === value ? " selected" : ""}>${value}</option>`;
+      const ratingOptions = ["5", "4", "3", "2", "1"]
+        .map((value, index) => {
+          const checkedAttr = String(reviewRatingValue) === value ? " checked" : "";
+          const requiredAttr = index === 0 ? " required" : "";
+          const inputId = `rating_${value}`;
+          return [
+            `<input class="rating-toggle-input" type="radio" id="${inputId}" name="rating" value="${value}"${checkedAttr}${requiredAttr}>`,
+            `<label class="rating-toggle-label" for="${inputId}"><span>${value}</span></label>`,
+          ].join("");
         })
         .join("");
       reviewSectionHtml = [
@@ -541,8 +576,13 @@ function residentTicketDetailPage({
         `${ticket.id}`,
         '/review" novalidate>',
         `<input type="hidden" name="csrf_token" value="${htmlEscape(session.csrfToken)}">`,
-        '<label for="rating">Rating (optional)</label>',
-        `<select id="rating" name="rating">${ratingOptions}</select>`,
+        '<fieldset class="rating-fieldset">',
+        "<legend>Rate the work</legend>",
+        '<div class="rating-toggle rating-toggle--range" role="radiogroup" aria-label="Rating">',
+        ratingOptions,
+        "</div>",
+        '<p class="small rating-extremes"><span>Poor</span><span>Excellent</span></p>',
+        "</fieldset>",
         reviewRatingErrorHtml,
         '<label for="review_text">Review Text (optional)</label>',
         `<textarea id="review_text" name="review_text">${htmlEscape(reviewTextValue)}</textarea>`,
@@ -561,7 +601,7 @@ function residentTicketDetailPage({
         navWithLogout({
           csrfToken: session.csrfToken,
           links: [
-            { href: "/resident", label: "<- Home", className: "nav-home-pill" },
+            { href: "/resident", label: "← Home", className: "nav-home-pill" },
             { label: ticket.ticket_number, className: "nav-ticket-center nav-meta" },
             { label: issueTypeLabel(ticket.issue_type), className: "nav-home-pill nav-link-right" },
           ],
@@ -569,15 +609,15 @@ function residentTicketDetailPage({
         '<header class="page-header">',
         ticketLifecycleProgress(ticket.status),
         `<h1 class="ticket-detail-title">${htmlEscape(ticket.title)}</h1>`,
-        `<p class="ticket-detail-meta">Updated ${htmlEscape(formatDetailDateTime(ticket.updated_at))} (${htmlEscape(relativeTimeAgo(ticket.updated_at, nowMillis))})</p>`,
+        `<p class="ticket-detail-meta">Last Update ${htmlEscape(formatDetailDateTime(ticket.updated_at))} (${htmlEscape(relativeTimeAgo(ticket.updated_at, nowMillis))})</p>`,
         "</header>",
         '<section class="section">',
-        '<div class="detail-stack">',
-        '<article class="resident-meta detail-block">',
-        "<h3>Description</h3>",
-        `<p>${htmlEscape(ticket.description)}</p>`,
+        "<h2>Description</h2>",
+        '<article class="resident-meta detail-card">',
+        '<p class="detail-card-row detail-card-row--multiline">',
+        `<span class="detail-card-value">${htmlEscape(ticket.description)}</span>`,
+        "</p>",
         "</article>",
-        "</div>",
         "</section>",
         assignedSection,
         submittedReviewHtml,
@@ -586,11 +626,7 @@ function residentTicketDetailPage({
         "<h2>Timeline</h2>",
         eventsHtml,
         "</section>",
-        '<section class="section">',
-        "<h2>Add Comment</h2>",
-        commentFormErrorHtml,
-        commentFormHtml,
-        "</section>",
+        commentSectionHtml,
       ].join(""),
     ),
     responseCode,
@@ -697,7 +733,7 @@ function renderComments(comments) {
 
 function renderCommentForm({ session, ticketId, ticketStatus, values = {}, errors = {}, formError = "" }) {
   if (ticketStatus === "completed") {
-    return '<div class="message info">Comments are closed because this ticket is completed.</div>';
+    return "";
   }
   const commentText = values.comment_text || "";
   const commentErrorHtml = errors.comment_text
@@ -854,6 +890,19 @@ function operatorTicketDetailPage({
       nextStatus: formState.next_status || "",
       statusError: formState.statusError || "",
     });
+  const commentSectionHtml = ticket.status === "completed"
+    ? ""
+    : [
+      "<h2>Add Comment</h2>",
+      renderCommentForm({
+        session,
+        ticketId: ticket.id,
+        ticketStatus: ticket.status,
+        values: { comment_text: formState.comment_text || "" },
+        errors: formState.commentErrors || {},
+        formError: formState.commentError || "",
+      }),
+    ].join("");
   return html(
     doc(
       `Ticket ${ticket.ticket_number}`,
@@ -878,15 +927,7 @@ function operatorTicketDetailPage({
         '<section class="section">',
         assignmentHtml,
         statusHtml,
-        "<h2>Add Comment</h2>",
-        renderCommentForm({
-          session,
-          ticketId: ticket.id,
-          ticketStatus: ticket.status,
-          values: { comment_text: formState.comment_text || "" },
-          errors: formState.commentErrors || {},
-          formError: formState.commentError || "",
-        }),
+        commentSectionHtml,
         "</section>",
         '<section class="section">',
         "<h2>Timeline</h2>",

@@ -54,18 +54,17 @@ export function validateReviewInput(input) {
   const errors = {};
 
   let rating = null;
-  if (ratingRaw !== "") {
+  if (ratingRaw === "") {
+    errors.rating = "Rating is required.";
+  } else {
     const parsed = Number.parseInt(ratingRaw, 10);
-    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 5) {
+    if (!/^\d+$/.test(ratingRaw) || !Number.isInteger(parsed) || parsed < 1 || parsed > 5) {
       errors.rating = "Rating must be a whole number between 1 and 5.";
     } else {
       rating = parsed;
     }
   }
 
-  if (reviewText && rating === null) {
-    errors.review_text = "Review text requires a rating.";
-  }
   if (reviewText.length > 2000) {
     errors.review_text = "Review text must be 2000 characters or fewer.";
   }

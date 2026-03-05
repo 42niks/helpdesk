@@ -94,7 +94,7 @@ test("admin assignment, staff completion, and resident review flow", async ({ pa
 
   await page.goto(ticketPath);
   await expect(page).toHaveURL(new RegExp(`${ticketPath}$`));
-  await page.getByLabel("Rating (optional)").selectOption("5");
+  await page.getByRole("radio", { name: "5" }).check();
   await page.getByLabel("Review Text (optional)").fill(reviewText);
   await page.getByRole("button", { name: "Submit Review" }).click();
   await expect(page.getByText(reviewText)).toBeVisible();

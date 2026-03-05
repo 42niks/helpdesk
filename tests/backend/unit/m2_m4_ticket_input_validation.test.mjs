@@ -56,14 +56,14 @@ test("validateCommentInput rejects empty and overlong comments", () => {
   assert.equal(longResult.errors.comment_text, "Comment must be between 1 and 2000 characters.");
 });
 
-test("validateReviewInput accepts empty and rating+text combinations", () => {
-  const emptyResult = validateReviewInput({
-    rating: "",
+test("validateReviewInput accepts rating-only and rating+text combinations", () => {
+  const ratingOnlyResult = validateReviewInput({
+    rating: "4",
     review_text: "",
   });
-  assert.equal(emptyResult.isValid, true);
-  assert.equal(emptyResult.values.rating, null);
-  assert.equal(emptyResult.values.review_text, "");
+  assert.equal(ratingOnlyResult.isValid, true);
+  assert.equal(ratingOnlyResult.values.rating, 4);
+  assert.equal(ratingOnlyResult.values.review_text, "");
 
   const ratedResult = validateReviewInput({
     rating: "5",
@@ -74,13 +74,13 @@ test("validateReviewInput accepts empty and rating+text combinations", () => {
   assert.equal(ratedResult.values.review_text, "Quick and professional work.");
 });
 
-test("validateReviewInput rejects text without rating and invalid rating", () => {
+test("validateReviewInput rejects missing rating and invalid rating", () => {
   const missingRating = validateReviewInput({
     rating: "",
     review_text: "Needs rating.",
   });
   assert.equal(missingRating.isValid, false);
-  assert.equal(missingRating.errors.review_text, "Review text requires a rating.");
+  assert.equal(missingRating.errors.rating, "Rating is required.");
 
   const invalidRating = validateReviewInput({
     rating: "9",

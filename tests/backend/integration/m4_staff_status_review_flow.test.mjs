@@ -314,7 +314,7 @@ test("resident review submission supports rating and text and blocks duplicates"
   fixtureDb.cleanup();
 });
 
-test("resident review accepts empty review and rating-only review", async () => {
+test("resident review requires rating and accepts rating-only review", async () => {
   const fixtureDb = createFixtureDb();
   const emptyReviewTicketId = insertTicket({
     sqlitePath: fixtureDb.sqlitePath,
@@ -354,7 +354,7 @@ test("resident review accepts empty review and rating-only review", async () => 
       resident.cookiePair,
     ),
   );
-  assert.equal(emptyReviewResponse.status, 303);
+  assert.equal(emptyReviewResponse.status, 422);
 
   const ratingOnlyReviewResponse = await fixture.app.fetch(
     buildFormRequest(
@@ -372,8 +372,7 @@ test("resident review accepts empty review and rating-only review", async () => 
   const emptyReview = db
     .prepare("select rating, review_text from ticket_reviews where ticket_id = ?")
     .get(emptyReviewTicketId);
-  assert.equal(emptyReview.rating, null);
-  assert.equal(emptyReview.review_text, null);
+  assert.equal(emptyReview, undefined);
 
   const ratingOnlyReview = db
     .prepare("select rating, review_text from ticket_reviews where ticket_id = ?")
@@ -386,7 +385,7 @@ test("resident review accepts empty review and rating-only review", async () => 
   fixtureDb.cleanup();
 });
 
-test("resident review text without rating returns 422", async () => {
+test("resident review without rating returns 422", async () => {
   const fixtureDb = createFixtureDb();
   const ticketId = insertTicket({
     sqlitePath: fixtureDb.sqlitePath,
@@ -422,7 +421,7 @@ test("resident review text without rating returns 422", async () => {
 
   assert.equal(response.status, 422);
   const html = await response.text();
-  assert.match(html, /Review text requires a rating/i);
+  assert.match(html, /Rating is required/i);
 
   fixture.close();
   fixtureDb.cleanup();
@@ -464,7 +463,7 @@ test("resident review is blocked until ticket is completed", async () => {
   assert.equal(reviewResponse.status, 409);
   const reviewHtml = await reviewResponse.text();
   assert.doesNotMatch(reviewHtml, /\/review" novalidate/);
-  assert.match(reviewHtml, /Status:<\/strong>\s*In Progress/i);
+  assert.match(reviewHtml, /In Progress/i);
 
   fixture.close();
   fixtureDb.cleanup();
@@ -518,4 +517,3 @@ test("submitted review appears on admin and assigned staff ticket detail", async
   fixture.close();
   fixtureDb.cleanup();
 });
-

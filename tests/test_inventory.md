@@ -11,8 +11,8 @@
 2. `validateTicketCreateInput rejects invalid issue type and short fields`
 3. `validateCommentInput accepts and trims comment text`
 4. `validateCommentInput rejects empty and overlong comments`
-5. `validateReviewInput accepts empty and rating+text combinations`
-6. `validateReviewInput rejects text without rating and invalid rating`
+5. `validateReviewInput accepts rating-only and rating+text combinations`
+6. `validateReviewInput rejects missing rating and invalid rating`
 
 ## Backend Integration Tests (41)
 
@@ -55,8 +55,8 @@
 4. `staff can progress assigned ticket to in_progress and completed`
 5. `staff invalid status transition returns 409`
 6. `resident review submission supports rating and text and blocks duplicates`
-7. `resident review accepts empty review and rating-only review`
-8. `resident review text without rating returns 422`
+7. `resident review requires rating and accepts rating-only review`
+8. `resident review without rating returns 422`
 9. `resident review is blocked until ticket is completed`
 10. `submitted review appears on admin and assigned staff ticket detail`
 

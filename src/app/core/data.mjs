@@ -84,6 +84,11 @@ async function listResidentTickets(db, residentAccountId, limit = 50) {
   return db.all(
     [
       "select t.id, t.ticket_number, t.issue_type, t.title, t.status, t.updated_at,",
+      "case",
+      "  when t.status = 'completed' and not exists (select 1 from ticket_reviews tr where tr.ticket_id = t.id)",
+      "  then 1",
+      "  else 0",
+      "end as needs_review,",
       "s.full_name as assigned_staff_name",
       "from tickets t",
       "left join staff s on s.account_id = t.assigned_staff_account_id",

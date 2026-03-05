@@ -458,18 +458,18 @@ Auth: resident flat account only.
 
 Request fields:
 - `csrf_token`
-- `rating` (optional 1-5)
+- `rating` (required integer 1-5)
 - `review_text` (optional)
 
 Rules:
 - Ticket must be completed.
 - Must not already have review.
-- `review_text` is allowed only when `rating` is present.
+- `rating` is mandatory for all review submissions.
 - Review input decision matrix:
 
 | Case | Rating Provided | Review Text Provided | Allowed | Result |
 |---|---|---|---|---|
-| 1 | No | No | Yes | Empty review accepted |
+| 1 | No | No | No | Reject with `422` |
 | 2 | No | Yes | No | Reject with `422` |
 | 3 | Yes | No | Yes | Rating-only review accepted |
 | 4 | Yes | Yes | Yes | Rating + text review accepted |
@@ -488,8 +488,8 @@ Failure:
 3. Description: minimum 10 chars.
 4. Issue type: enum (`electrical`,`plumbing`).
 5. Comment length: 1-2000 chars.
-6. Review rating: nullable or integer 1-5.
-7. Review text is allowed only when rating is present.
+6. Review rating: required integer 1-5.
+7. Review text is optional when rating is present.
 8. Assignment requires active staff link and matching type.
 9. Active ticket cap: max 5 for resident.
 10. Deactivated accounts cannot authenticate or mutate data.
@@ -791,7 +791,7 @@ Common checks:
 ### 15.3 Decision Log
 1. Decision: Unauthorized access to `/tickets/:id` returns `404` (anti-enumeration), while action-level forbidden in known context returns `403`.
 2. Decision: Admin completion of invalid/duplicate tickets requires reason and writes audit event.
-3. Decision: `review_text` is allowed only when `rating` is present; empty review submission is valid.
+3. Decision: `rating` is mandatory for review submission; review text remains optional.
 4. Decision: Verbose error details are shown to users by design for this project.
 
 ## 16. Delivery Plan

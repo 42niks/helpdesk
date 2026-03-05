@@ -49,6 +49,7 @@
 
 - Top navigation is lightweight and role-aware.
 - Use left for back navigation, center for low-priority identity/context, right for compact state/type chip.
+- Standardize resident back-navigation pill label as `← Home` (use unicode arrow, not `->`/`<-` ASCII variants).
 - Logout is shown only in account/profile pages:
   - `/resident/account`
   - `/admin/account`
@@ -63,6 +64,7 @@
 - `ticket-item`: dense ticket rows with title, status chip, and compact metadata.
 - `progress line`: short lifecycle tracker with clear current-step emphasis.
 - `activity timeline`: chronological feed that can mix system events and human comments.
+- `rating control`: tap-friendly 1-5 pill radios (not dropdown), with clear selected state and endpoint hints (`Poor`, `Excellent`).
 - `status-chip` variants:
   - `open`
   - `assigned`
@@ -79,9 +81,11 @@
 - Keep forms linear and explicit (label above field).
 - Put primary context first, actions later. On detail pages, forms should usually come after history/context.
 - Do not duplicate the same information in multiple adjacent blocks (for example, same status shown repeatedly).
+- When rating is required by workflow, enforce it in both UI affordance and server-side validation.
 
 ## Detail Screen Structure
 
+- Ticket detail is a shared screen pattern across actors; keep core layout consistent and swap only role-specific action blocks.
 - Header: progress + primary title.
 - Freshness metadata: prioritize `Updated` over less critical fields.
 - Core content block: main description/details in readable full-width text.
@@ -95,6 +99,7 @@
 - Differentiate entry types with subtle cues (iconography, dot style, mild tint), not heavy color.
 - Keep timestamp placement consistent across entry types for quick scanning.
 - Human actions and system actions should have distinct but calm visual language.
+- Chronological ordering of timeline entries is a cross-role invariant and should remain consistent for resident, admin, and staff views.
 
 ## Performance Rules
 
@@ -109,3 +114,4 @@
 - Logout remains accessible only from account pages.
 - Lifecycle transitions and timeline ordering remain correct across states.
 - Mobile layouts remain readable without horizontal overflow at 320px width.
+- Shared detail-page structure stays aligned across roles, while role-specific controls remain contextual.
